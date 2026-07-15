@@ -4,12 +4,12 @@ title: "Quizkit demo"
 
 A demo of quizkit.
 
-::: {.quiz}
+::: {.quiz lockout="5"}
 
 ::: {.question}
 What is 2 + 2?
 
-- [ ] 3
+- [ ] [3]{explanation="Close, but 2 + 2 = 4."}
 - [x] 4
 - [ ] 5
 :::
@@ -21,6 +21,10 @@ Which are prime? (select all)
 - [x] 3
 - [ ] 4
 - [x] 5
+
+::: {.feedback}
+A prime has exactly two divisors: 1 and itself.
+:::
 :::
 
 ::: {.question answer="7" tolerance="0"}
@@ -32,6 +36,10 @@ Rate each statement.
 
 - [x] Every integer is a rational number.
 - [ ] Pi is a rational number.
+:::
+
+::: {.reveal}
+Nicely done — you finished the demo quiz.
 :::
 
 :::

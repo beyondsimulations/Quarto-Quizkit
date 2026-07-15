@@ -46,15 +46,31 @@ end
 
 local function raw(html) return pandoc.RawBlock("html", html) end
 
+-- If the option's inlines end in a Span carrying an `explanation` attribute,
+-- pull the explanation text out and UNWRAP the span so its visible label
+-- survives in the button. Returns the explanation string or nil.
+local function extract_explanation(inlines)
+  local last = inlines[#inlines]
+  if last and last.t == "Span" and last.attributes["explanation"] then
+    local exp = last.attributes["explanation"]
+    inlines[#inlines] = nil
+    for _, il in ipairs(last.content) do inlines[#inlines + 1] = il end
+    return exp
+  end
+  return nil
+end
+
 local function build_choice(list, submit_label)
   local correct = 0
   local opts = {}
   for _, item in ipairs(list.content) do
     local checked, rest = task_item(item)
     if checked then correct = correct + 1 end
+    local exp = extract_explanation(rest)
+    local exp_attr = exp and string.format(' data-explanation="%s"', exp:gsub('"', "&quot;")) or ""
     opts[#opts + 1] = string.format(
-      '<button class="quiz-option" data-correct="%s">%s</button>',
-      tostring(checked), inlines_to_html(rest))
+      '<button class="quiz-option" data-correct="%s"%s>%s</button>',
+      tostring(checked), exp_attr, inlines_to_html(rest))
   end
   local multi = correct >= 2 and " quiz-multi" or ""
   local html = string.format('<div class="quiz-options%s">\n%s\n</div>', multi,
@@ -98,9 +114,10 @@ local function compile_question(qdiv, cfg)
   local is_kprim = qdiv.classes:includes("kprim")
   local answer = qdiv.attributes["answer"]
   local tolerance = qdiv.attributes["tolerance"]
-  local stem, list = {}, nil
+  local stem, list, feedback = {}, nil, nil
   for _, blk in ipairs(qdiv.content) do
     if blk.t == "BulletList" and is_task_list(blk) then list = blk
+    elseif blk.t == "Div" and blk.classes:includes("feedback") then feedback = blk
     else stem[#stem + 1] = blk end
   end
   local inner = {}
@@ -114,6 +131,10 @@ local function compile_question(qdiv, cfg)
   elseif list then
     inner[#inner + 1] = build_choice(list, cfg.strings.submit)
   end
+  if feedback then
+    inner[#inner + 1] = raw('<div class="quiz-feedback-note" style="display:none">' ..
+      pandoc.write(pandoc.Pandoc(feedback.content), "html") .. '</div>')
+  end
   return pandoc.Div(inner, pandoc.Attr("", { "puzzle-box" }))
 end
 
@@ -126,12 +147,21 @@ function Div(el)
     placeholder = "Your answer…",
   } }
   local out = {}
+  local reveal_html = nil
   for _, blk in ipairs(el.content) do
     if blk.t == "Div" and blk.classes:includes("question") then
       out[#out + 1] = compile_question(blk, cfg)
+    elseif blk.t == "Div" and blk.classes:includes("reveal") then
+      reveal_html = pandoc.write(pandoc.Pandoc(blk.content), "html")
     else
       out[#out + 1] = blk
     end
   end
-  return pandoc.Div(out, pandoc.Attr("", { "scenario-block" }))
+  if reveal_html then
+    out[#out + 1] = raw('<div class="revealed-text" style="display:none">' .. reveal_html .. '</div>')
+  end
+  local attrs = {}
+  local function put(k) if el.attributes[k] then attrs["data-" .. k] = el.attributes[k] end end
+  put("label"); put("lockout"); put("shuffle"); put("disable-on-check")
+  return pandoc.Div(out, pandoc.Attr("", { "scenario-block" }, attrs))
 end
