@@ -23,4 +23,15 @@ Which are prime? (select all)
 - [x] 5
 :::
 
+::: {.question answer="7" tolerance="0"}
+How many integers x satisfy |x - 10| ≤ 3? Type the number.
+:::
+
+::: {.question .kprim}
+Rate each statement.
+
+- [x] Every integer is a rational number.
+- [ ] Pi is a rational number.
+:::
+
 :::

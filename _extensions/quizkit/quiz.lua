@@ -65,18 +65,55 @@ local function build_choice(list, submit_label)
   return raw(html)
 end
 
-local function compile_question(qdiv, submit_label)
+local function build_input(answer, tolerance, submit_label, placeholder)
+  local tol = tolerance and string.format(' data-tolerance="%s"', tolerance) or ""
+  return raw(string.format(
+    '<input class="quiz-input" type="text" placeholder="%s">\n' ..
+    '<div class="quiz-actions"><p class="quiz-feedback"></p>' ..
+    '<button class="quiz-submit" data-answer="%s"%s disabled>%s</button></div>',
+    placeholder, answer, tol, submit_label))
+end
+
+local function build_kprim(list, submit_label, t_true, t_false)
+  local rows = {}
+  for _, item in ipairs(list.content) do
+    local checked, rest = task_item(item)
+    local key = checked and "richtig" or "falsch"
+    rows[#rows + 1] = string.format(
+      '<div class="kprim-row" data-kprim="%s">' ..
+      '<span class="kprim-statement">%s</span>' ..
+      '<div class="kprim-buttons">' ..
+      '<button class="kprim-true">%s</button>' ..
+      '<button class="kprim-false">%s</button></div></div>',
+      key, inlines_to_html(rest), t_true, t_false)
+  end
+  return raw(string.format(
+    '<div class="kprim-table">\n%s\n</div>\n' ..
+    '<div class="quiz-actions"><p class="quiz-feedback"></p>' ..
+    '<button class="quiz-submit" disabled>%s</button></div>',
+    table.concat(rows, "\n"), submit_label))
+end
+
+local function compile_question(qdiv, cfg)
+  local is_kprim = qdiv.classes:includes("kprim")
+  local answer = qdiv.attributes["answer"]
+  local tolerance = qdiv.attributes["tolerance"]
   local stem, list = {}, nil
   for _, blk in ipairs(qdiv.content) do
-    if blk.t == "BulletList" and is_task_list(blk) then
-      list = blk
-    else
-      stem[#stem + 1] = blk
-    end
+    if blk.t == "BulletList" and is_task_list(blk) then list = blk
+    else stem[#stem + 1] = blk end
   end
   local inner = {}
   for _, b in ipairs(stem) do inner[#inner + 1] = b end
-  if list then inner[#inner + 1] = build_choice(list, submit_label) end
+  if is_kprim and list then
+    inner[#inner + 1] = build_kprim(list, cfg.strings.submit,
+      cfg.strings.kprim_true, cfg.strings.kprim_false)
+  elseif answer ~= nil then
+    inner[#inner + 1] = build_input(answer, tolerance, cfg.strings.submit,
+      cfg.strings.placeholder)
+  elseif list then
+    inner[#inner + 1] = build_choice(list, cfg.strings.submit)
+  end
   return pandoc.Div(inner, pandoc.Attr("", { "puzzle-box" }))
 end
 
@@ -84,11 +121,14 @@ function Div(el)
   if not el.classes:includes("quiz") then return nil end
   if not quarto.doc.is_format("html") then return nil end  -- stripping added in a later task
   ensure_deps()
-  local submit_label = "Check"  -- becomes configurable in a later task
+  local cfg = { strings = {
+    submit = "Check", kprim_true = "true", kprim_false = "false",
+    placeholder = "Your answer…",
+  } }
   local out = {}
   for _, blk in ipairs(el.content) do
     if blk.t == "Div" and blk.classes:includes("question") then
-      out[#out + 1] = compile_question(blk, submit_label)
+      out[#out + 1] = compile_question(blk, cfg)
     else
       out[#out + 1] = blk
     end
