@@ -1,0 +1,17 @@
+---
+title: "Quizkit demo"
+---
+
+A demo of quizkit.
+
+::: {.quiz}
+
+::: {.question}
+What is 2 + 2?
+
+- [ ] 3
+- [x] 4
+- [ ] 5
+:::
+
+:::

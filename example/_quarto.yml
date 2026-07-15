@@ -1,0 +1,9 @@
+project:
+  type: website
+website:
+  title: "Quizkit example"
+format:
+  html:
+    theme: cosmo
+filters:
+  - quizkit
