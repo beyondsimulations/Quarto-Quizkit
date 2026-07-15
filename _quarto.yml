@@ -1,5 +1,8 @@
 project:
   type: website
+  # Render only the demo pages, not README.md/LICENSE.
+  render:
+    - index.qmd
 website:
   title: "Quizkit example"
 format:
