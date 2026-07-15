@@ -52,7 +52,7 @@
         // --- HELPER: TOLERANT ANSWER COMPARISON ---
         // Applied to BOTH the typed answer and the expected data-answer so
         // that answers written in common formats still count as correct.
-        function answersMatch(userRaw, correctRaw) {
+        function answersMatch(userRaw, correctRaw, tol) {
             // Shared text normalization for both sides.
             function normalize(str) {
                 return str
@@ -77,7 +77,8 @@
             // "-2" != 2).
             if (correct !== "" && !isNaN(Number(correct))) {
                 const userNum = parseNumeric(user);
-                return userNum !== null && userNum === Number(correct);
+                const tolNum = Number(tol) || 0;
+                return userNum !== null && Math.abs(userNum - Number(correct)) <= tolNum;
             }
 
             // Non-numeric answer (e.g. "true"/"false"): compare as strings.
@@ -342,9 +343,12 @@
                             // Check Input (tolerant, format-insensitive)
                             const rawCorrect =
                                 submitBtn.getAttribute("data-answer") || "";
+                            const rawTol =
+                                submitBtn.getAttribute("data-tolerance");
                             isCorrect = answersMatch(
                                 inputField.value,
                                 rawCorrect,
+                                rawTol,
                             );
                             errorEl = inputField;
                         }

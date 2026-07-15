@@ -188,7 +188,7 @@ document.addEventListener("quiz:answer", (e) => {
 
 ## Answer safety for plaintext exports
 
-If your project also renders a Markdown format (e.g. `hugo-md` for a search index or an LLM corpus), Quizkit's filter is format-aware: HTML output gets the full widget, while any non-HTML output gets **only the question stems** — every option, answer, `[x]`, feedback, and reveal is stripped. Answer keys never reach your `.md` files.
+If your project also renders a Markdown format (e.g. `hugo-md` for a search index or an LLM corpus), Quizkit's filter is format-aware: HTML output gets the full widget, while any non-HTML output gets **only the question stems** — every option, answer, `[x]`, feedback, and reveal is stripped. Answer keys never reach your `.md` files. Note that non-HTML output keeps only the question stems: any loose prose between questions is omitted there (unlike HTML output, where it is passed through).
 
 ## Requirements
 

@@ -57,10 +57,45 @@ local function is_task_list(list)
   return #list.content > 0
 end
 
-local function json_escape(s) return (s:gsub('[\\"]', "\\%0")) end
+-- Escape a string for safe use inside a double-quoted HTML attribute.
+local function attr_escape(s)
+  return (tostring(s):gsub("&", "&amp;"):gsub('"', "&quot;")
+    :gsub("<", "&lt;"):gsub(">", "&gt;"))
+end
+
+-- Escape a string for safe use as raw-HTML element text.
+local function text_escape(s)
+  return (tostring(s):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
+end
+
+-- Recursively drop answer-bearing content (task lists, .feedback, .reveal) at
+-- any depth, keeping only stem prose. Used for non-HTML (corpus) output.
+local function strip_blocks(blocks)
+  local out = {}
+  for _, b in ipairs(blocks) do
+    if b.t == "BulletList" and is_task_list(b) then
+      -- drop task-list options
+    elseif b.t == "Div" and (b.classes:includes("feedback")
+        or b.classes:includes("reveal")) then
+      -- drop feedback/reveal blocks
+    elseif b.t == "Div" then
+      out[#out + 1] = pandoc.Div(strip_blocks(b.content), b.attr)
+    else
+      out[#out + 1] = b
+    end
+  end
+  return out
+end
+
+local function json_escape(s)
+  s = tostring(s):gsub("[\\\"]", "\\%0")
+  s = s:gsub("\n", "\\n"):gsub("\r", "\\r"):gsub("\t", "\\t")
+  s = s:gsub("</", "<\\/")  -- prevent </script> breaking out of the tag
+  return s
+end
 
 local function inject_config()
-  local parts = { string.format('"lockout":%d', CONFIG.lockout) }
+  local parts = { string.format('"lockout":%d', math.floor(tonumber(CONFIG.lockout) or 10)) }
   local kv = {}
   for k, v in pairs(CONFIG.strings) do
     kv[#kv + 1] = string.format('"%s":"%s"', k, json_escape(v))
@@ -77,7 +112,8 @@ local function inject_config()
     "<script>window.quizkitConfig={" .. table.concat(parts, ",") .. "};</script>")
   if t and t.src and t.website then
     quarto.doc.include_text("in-header", string.format(
-      '<script defer src="%s" data-website-id="%s"></script>', t.src, t.website))
+      '<script defer src="%s" data-website-id="%s"></script>',
+      attr_escape(t.src), attr_escape(t.website)))
   end
 end
 
@@ -117,7 +153,7 @@ local function build_choice(list, submit_label)
     local checked, rest = task_item(item)
     if checked then correct = correct + 1 end
     local exp = extract_explanation(rest)
-    local exp_attr = exp and string.format(' data-explanation="%s"', exp:gsub('"', "&quot;")) or ""
+    local exp_attr = exp and string.format(' data-explanation="%s"', attr_escape(exp)) or ""
     opts[#opts + 1] = string.format(
       '<button class="quiz-option" data-correct="%s"%s>%s</button>',
       tostring(checked), exp_attr, inlines_to_html(rest))
@@ -127,17 +163,17 @@ local function build_choice(list, submit_label)
     table.concat(opts, "\n"))
   html = html .. string.format(
     '\n<div class="quiz-actions"><p class="quiz-feedback"></p>' ..
-    '<button class="quiz-submit" disabled>%s</button></div>', submit_label)
+    '<button class="quiz-submit" disabled>%s</button></div>', text_escape(submit_label))
   return raw(html)
 end
 
 local function build_input(answer, tolerance, submit_label, placeholder)
-  local tol = tolerance and string.format(' data-tolerance="%s"', tolerance) or ""
+  local tol = tolerance and string.format(' data-tolerance="%s"', attr_escape(tolerance)) or ""
   return raw(string.format(
     '<input class="quiz-input" type="text" placeholder="%s">\n' ..
     '<div class="quiz-actions"><p class="quiz-feedback"></p>' ..
     '<button class="quiz-submit" data-answer="%s"%s disabled>%s</button></div>',
-    placeholder, answer, tol, submit_label))
+    attr_escape(placeholder), attr_escape(answer), tol, text_escape(submit_label)))
 end
 
 local function build_kprim(list, submit_label, t_true, t_false)
@@ -151,13 +187,13 @@ local function build_kprim(list, submit_label, t_true, t_false)
       '<div class="kprim-buttons">' ..
       '<button class="kprim-true">%s</button>' ..
       '<button class="kprim-false">%s</button></div></div>',
-      key, inlines_to_html(rest), t_true, t_false)
+      key, inlines_to_html(rest), text_escape(t_true), text_escape(t_false))
   end
   return raw(string.format(
     '<div class="kprim-table">\n%s\n</div>\n' ..
     '<div class="quiz-actions"><p class="quiz-feedback"></p>' ..
     '<button class="quiz-submit" disabled>%s</button></div>',
-    table.concat(rows, "\n"), submit_label))
+    table.concat(rows, "\n"), text_escape(submit_label)))
 end
 
 local function compile_question(qdiv, cfg)
@@ -199,7 +235,9 @@ function Meta(meta)
     for k, v in pairs(q.strings) do strings[k] = pandoc.utils.stringify(v) end
   end
   CONFIG.strings = strings
-  if q.lockout then CONFIG.lockout = tonumber(pandoc.utils.stringify(q.lockout)) end
+  if q.lockout then
+    local n = tonumber(pandoc.utils.stringify(q.lockout)); if n then CONFIG.lockout = n end
+  end
   if q.label then CONFIG.label = pandoc.utils.stringify(q.label) end
   if q.telemetry then
     CONFIG.telemetry = {
@@ -219,12 +257,7 @@ function Div(el)
     local stems = {}
     for _, blk in ipairs(el.content) do
       if blk.t == "Div" and blk.classes:includes("question") then
-        for _, b in ipairs(blk.content) do
-          if not (b.t == "BulletList" and is_task_list(b))
-             and not (b.t == "Div" and b.classes:includes("feedback")) then
-            stems[#stems + 1] = b
-          end
-        end
+        for _, b in ipairs(strip_blocks(blk.content)) do stems[#stems + 1] = b end
       end
       -- intentionally drop .reveal and any answer-bearing content
     end
