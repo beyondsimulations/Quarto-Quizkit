@@ -1,5 +1,30 @@
 -- quiz.lua — compiles ::: {.quiz} authoring into the quiz widget's HTML.
--- Task 1: single-choice and multi-select questions only.
+-- Supports single-choice, multi-select, numeric, and kprim questions plus
+-- reveal/feedback/explanation blocks. Reads a `quiz:` metadata block for
+-- language, string overrides, lockout, and optional telemetry, injecting a
+-- window.quizkitConfig into the HTML head. In non-HTML output it strips every
+-- answer and emits question stems only.
+
+-- Bundled UI strings. `en` is the default; `de` ships for the German lectures.
+-- A consumer overrides individual keys via `quiz.strings` in _quarto.yml.
+local STRINGS = {
+  en = {
+    submit = "Check", correct = "Correct!", wrong = "Not quite. ",
+    cooldown = "Try again in {n}s …",
+    kprim_partial = "{c}/{t} statements rated correctly",
+    multi_partial = "{h} of {t} correct answers selected",
+    kprim_true = "true", kprim_false = "false", placeholder = "Your answer…",
+  },
+  de = {
+    submit = "Check", correct = "Richtig!", wrong = "Leider falsch. ",
+    cooldown = "Noch {n}s …",
+    kprim_partial = "{c}/{t} Aussagen korrekt bewertet",
+    multi_partial = "{h} von {t} richtigen Antworten gewählt",
+    kprim_true = "richtig", kprim_false = "falsch", placeholder = "Deine Antwort…",
+  },
+}
+
+local CONFIG = { strings = STRINGS.en, lockout = 10, telemetry = nil, label = nil }
 
 -- Render inlines to an HTML string (preserves math/emphasis/code).
 -- pandoc.Plain avoids the <p> wrapper Para would add.
@@ -32,6 +57,30 @@ local function is_task_list(list)
   return #list.content > 0
 end
 
+local function json_escape(s) return (s:gsub('[\\"]', "\\%0")) end
+
+local function inject_config()
+  local parts = { string.format('"lockout":%d', CONFIG.lockout) }
+  local kv = {}
+  for k, v in pairs(CONFIG.strings) do
+    kv[#kv + 1] = string.format('"%s":"%s"', k, json_escape(v))
+  end
+  parts[#parts + 1] = '"strings":{' .. table.concat(kv, ",") .. '}'
+  if CONFIG.label then
+    parts[#parts + 1] = string.format('"label":"%s"', json_escape(CONFIG.label))
+  end
+  local t = CONFIG.telemetry
+  if t and t.website then
+    parts[#parts + 1] = string.format('"telemetry":{"website":"%s"}', json_escape(t.website))
+  end
+  quarto.doc.include_text("in-header",
+    "<script>window.quizkitConfig={" .. table.concat(parts, ",") .. "};</script>")
+  if t and t.src and t.website then
+    quarto.doc.include_text("in-header", string.format(
+      '<script defer src="%s" data-website-id="%s"></script>', t.src, t.website))
+  end
+end
+
 local deps_added = false
 local function ensure_deps()
   if deps_added then return end
@@ -42,6 +91,7 @@ local function ensure_deps()
     scripts = { "quiz.js" },
     stylesheets = { "quiz.css" },
   })
+  inject_config()
 end
 
 local function raw(html) return pandoc.RawBlock("html", html) end
@@ -138,14 +188,51 @@ local function compile_question(qdiv, cfg)
   return pandoc.Div(inner, pandoc.Attr("", { "puzzle-box" }))
 end
 
+function Meta(meta)
+  local q = meta.quiz
+  if not q then return nil end
+  local lang = q.lang and pandoc.utils.stringify(q.lang) or "en"
+  local base = STRINGS[lang] or STRINGS.en
+  local strings = {}
+  for k, v in pairs(base) do strings[k] = v end
+  if q.strings then
+    for k, v in pairs(q.strings) do strings[k] = pandoc.utils.stringify(v) end
+  end
+  CONFIG.strings = strings
+  if q.lockout then CONFIG.lockout = tonumber(pandoc.utils.stringify(q.lockout)) end
+  if q.label then CONFIG.label = pandoc.utils.stringify(q.label) end
+  if q.telemetry then
+    CONFIG.telemetry = {
+      src = q.telemetry["umami-src"] and pandoc.utils.stringify(q.telemetry["umami-src"]),
+      website = q.telemetry["umami-website-id"] and pandoc.utils.stringify(q.telemetry["umami-website-id"]),
+    }
+    if q.telemetry.label then CONFIG.label = pandoc.utils.stringify(q.telemetry.label) end
+  end
+  return nil
+end
+
 function Div(el)
   if not el.classes:includes("quiz") then return nil end
-  if not quarto.doc.is_format("html") then return nil end  -- stripping added in a later task
+
+  -- Non-HTML (e.g. hugo-md corpus): emit question stems ONLY, never answers.
+  if not quarto.doc.is_format("html") then
+    local stems = {}
+    for _, blk in ipairs(el.content) do
+      if blk.t == "Div" and blk.classes:includes("question") then
+        for _, b in ipairs(blk.content) do
+          if not (b.t == "BulletList" and is_task_list(b))
+             and not (b.t == "Div" and b.classes:includes("feedback")) then
+            stems[#stems + 1] = b
+          end
+        end
+      end
+      -- intentionally drop .reveal and any answer-bearing content
+    end
+    return pandoc.Div(stems)
+  end
+
   ensure_deps()
-  local cfg = { strings = {
-    submit = "Check", kprim_true = "true", kprim_false = "false",
-    placeholder = "Your answer…",
-  } }
+  local cfg = CONFIG
   local out = {}
   local reveal_html = nil
   for _, blk in ipairs(el.content) do
@@ -165,3 +252,6 @@ function Div(el)
   put("label"); put("lockout"); put("shuffle"); put("disable-on-check")
   return pandoc.Div(out, pandoc.Attr("", { "scenario-block" }, attrs))
 end
+
+-- Meta first (populate CONFIG), then Div (compile using CONFIG).
+return { { Meta = Meta }, { Div = Div } }

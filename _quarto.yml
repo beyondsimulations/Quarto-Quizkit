@@ -3,10 +3,12 @@ project:
   # Render only the demo pages, not README.md/LICENSE.
   render:
     - index.qmd
+    - de.qmd
 website:
   title: "Quizkit example"
 format:
   html:
     theme: cosmo
+  hugo-md: default
 filters:
   - quizkit

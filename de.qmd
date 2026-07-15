@@ -1,0 +1,26 @@
+---
+title: "Quizkit Demo (Deutsch)"
+quiz:
+  lang: de
+---
+
+Ein kleines Beispiel-Quiz.
+
+::: {.quiz}
+
+::: {.question}
+Was ist 2 + 2?
+
+- [ ] 3
+- [x] 4
+- [ ] 5
+:::
+
+::: {.question .kprim}
+Bewerte jede Aussage.
+
+- [x] Jede ganze Zahl ist rational.
+- [ ] Pi ist rational.
+:::
+
+:::
