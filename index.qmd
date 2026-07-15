@@ -14,4 +14,13 @@ What is 2 + 2?
 - [ ] 5
 :::
 
+::: {.question}
+Which are prime? (select all)
+
+- [x] 2
+- [x] 3
+- [ ] 4
+- [x] 5
+:::
+
 :::
