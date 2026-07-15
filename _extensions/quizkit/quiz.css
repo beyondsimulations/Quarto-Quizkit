@@ -1,0 +1,319 @@
+/* =========================================
+   QUIZ & PUZZLE STYLING
+   ========================================= */
+
+/* Colours ride entirely on Bootstrap's own custom properties, which Quarto
+   derives from whatever theme or `_brand.yml` the consuming site defines.
+   Using --bs-primary/--bs-success/--bs-danger/--bs-warning etc. (only the
+   universal, semantic slots — never lecture-specific palette keys) keeps the
+   quiz in sync with any site's palette automatically and inherits the
+   dark-mode overrides Bootstrap already ships. The literal fallback after
+   each var() is a brand-neutral default, used only if the custom property is
+   missing (e.g. a bare theme with no _brand.yml). */
+
+/* Wrapper for Puzzle + Story */
+.scenario-block {
+    margin-bottom: 25px; /* Reduced from 40px */
+    width: 100%;
+}
+
+/* The White Box Container */
+.puzzle-box {
+    background: var(--bs-body-bg, #fffdfc);
+    border: 1px solid var(--bs-border-color, #ddd);
+    padding: 20px; /* Reduced padding from 25px */
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 15px; /* Reduced spacing */
+}
+
+/* --- BUTTONS (Single/Multiple Choice) --- */
+.quiz-option {
+    display: block;
+    width: 100%;
+    padding: 10px 12px; /* Tighter padding */
+    margin-bottom: 6px;
+    text-align: left;
+    background: var(--bs-body-bg, #fffdfc);
+    border: 1px solid var(--bs-border-color, #ccc); /* Thinner border */
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+    color: var(--bs-body-color, #333);
+}
+
+.quiz-option:hover:not(:disabled) {
+    border-color: var(--bs-primary, #0f6e6b);
+    background-color: color-mix(
+        in srgb,
+        var(--bs-primary, #0f6e6b) 8%,
+        var(--bs-body-bg, #fff)
+    );
+}
+
+/* Selected State */
+.quiz-option.selected {
+    border-color: var(--bs-primary, #0f6e6b);
+    background-color: var(--bs-body-bg, #fffdfc);
+    font-weight: bold;
+    box-shadow: 0 0 0 1px var(--bs-primary, #0f6e6b) inset; /* Inner border glow */
+}
+
+/* Correct State (Persistent even if disabled) */
+/* text-emphasis/bg-subtle are mode-aware Bootstrap tokens: they invert
+   in dark mode, so the solved state stays readable on dark backgrounds. */
+.quiz-option.correct,
+.quiz-option.correct:disabled {
+    color: var(--bs-success-text-emphasis, #1a3e1c) !important;
+    opacity: 1 !important;
+    background-color: var(--bs-success-bg-subtle, #d5e8d6) !important;
+    border-color: var(--bs-success, #2e7d32) !important;
+    font-weight: bold;
+    cursor: default;
+}
+
+/* Wrong State */
+.quiz-option.wrong {
+    border-color: var(--bs-danger, #db6b6b) !important;
+    background-color: color-mix(
+        in srgb,
+        var(--bs-danger, #db6b6b) 25%,
+        var(--bs-body-bg, #fff)
+    ) !important;
+}
+
+/* Disabled State (e.g. greyed out during the penalty cooldown). */
+/* Scoped away from .correct and .wrong so those keep their own colors. */
+.quiz-option:disabled:not(.correct):not(.wrong) {
+    color: var(--bs-secondary-color, #999);
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* --- MULTI-RESPONSE CONTAINER --- */
+/* Whole-container feedback (shake + outline) so a wrong guess doesn't
+   single out any one option and give away which ones were correct. */
+.quiz-options.wrong {
+    box-shadow: 0 0 0 2px var(--bs-warning, #e65100) inset;
+    border-radius: 6px;
+}
+
+/* --- INPUT FIELDS (Type Answer) --- */
+.quiz-input {
+    /* Layout & Size */
+    display: block; /* Forces it to be on its own line */
+    width: 100%; /* Takes up full width of the box */
+    box-sizing: border-box; /* Ensures padding doesn't break width */
+    margin: 10px 0; /* Adds space above and below */
+
+    /* Visuals */
+    padding: 12px;
+    font-size: 1.1rem;
+    border: 2px solid var(--bs-border-color, #ccc);
+    border-radius: 6px;
+    background-color: var(--bs-body-bg, #fffdfc);
+    color: var(--bs-body-color, #333);
+    transition: all 0.2s ease;
+}
+
+.quiz-input:focus {
+    outline: none;
+    border-color: var(--bs-primary, #0f6e6b); /* Brand Glow */
+    box-shadow: 0 0 8px
+        color-mix(in srgb, var(--bs-primary, #0f6e6b) 15%, transparent);
+}
+
+.quiz-input:disabled {
+    background-color: var(--bs-tertiary-bg, #f0f0f0);
+    color: var(--bs-secondary-color, #666);
+    border-color: var(--bs-border-color, #ddd);
+    cursor: not-allowed;
+}
+
+/* Success State (Green) */
+.quiz-input.correct {
+    background-color: var(--bs-success-bg-subtle, #d5e8d6) !important;
+    border-color: var(--bs-success, #2e7d32) !important;
+    color: var(--bs-success-text-emphasis, #1a3e1c);
+    font-weight: bold;
+}
+
+/* Error State (Red) */
+.quiz-input.wrong {
+    border-color: var(--bs-danger, #db6b6b) !important;
+    background-color: color-mix(
+        in srgb,
+        var(--bs-danger, #db6b6b) 25%,
+        var(--bs-body-bg, #fff)
+    ) !important;
+}
+
+/* --- K-PRIM TABLE (4 richtig/falsch rows) --- */
+.kprim-table {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.kprim-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--bs-border-color, #ccc);
+    border-radius: 6px;
+    background: var(--bs-body-bg, #fffdfc);
+    flex-wrap: wrap;
+}
+
+.kprim-statement {
+    flex: 1 1 auto;
+    text-align: left;
+}
+
+.kprim-buttons {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.kprim-true,
+.kprim-false {
+    padding: 6px 14px;
+    border: 1px solid var(--bs-border-color, #ccc);
+    border-radius: 5px;
+    background: var(--bs-body-bg, #fffdfc);
+    color: var(--bs-body-color, #333);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.kprim-true:hover:not(:disabled),
+.kprim-false:hover:not(:disabled) {
+    border-color: var(--bs-primary, #0f6e6b);
+}
+
+.kprim-true.selected,
+.kprim-false.selected {
+    border-color: var(--bs-primary, #0f6e6b);
+    background-color: color-mix(
+        in srgb,
+        var(--bs-primary, #0f6e6b) 15%,
+        var(--bs-body-bg, #fff)
+    );
+    box-shadow: 0 0 0 1px var(--bs-primary, #0f6e6b) inset;
+}
+
+.kprim-true.correct,
+.kprim-false.correct {
+    color: var(--bs-success-text-emphasis, #1a3e1c) !important;
+    background-color: var(--bs-success-bg-subtle, #d5e8d6) !important;
+    border-color: var(--bs-success, #2e7d32) !important;
+}
+
+.kprim-true:disabled:not(.correct),
+.kprim-false:disabled:not(.correct) {
+    color: var(--bs-secondary-color, #999);
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Whole-table feedback for a wrong guess, mirrors .quiz-options.wrong:
+   never mark individual rows so the correct answers stay hidden. */
+.kprim-table.wrong {
+    box-shadow: 0 0 0 2px var(--bs-warning, #e65100) inset;
+    border-radius: 8px;
+}
+
+/* --- ACTION AREA --- */
+.quiz-submit {
+    background-color: var(--bs-primary, #0f6e6b);
+    color: var(--bs-light, white);
+    border: none;
+    padding: 8px 16px; /* Compact button */
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 5px;
+    font-size: 0.95rem;
+}
+
+.quiz-submit:disabled {
+    background-color: var(--bs-secondary-color, #ccc);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* --- Success Feedback Color --- */
+.quiz-feedback.success {
+    color: var(--bs-success, #2e7d32) !important; /* Force success color, override default red */
+}
+
+/* --- REVEALED TEXT (Story) --- */
+.revealed-text {
+    display: none; /* Hidden by default */
+    margin-top: 15px; /* Reduced spacing */
+    animation: fadeText 1.5s;
+}
+
+@keyframes fadeText {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- ERROR ANIMATION (Shake) --- */
+.shake {
+    animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+/* --- POST-ANSWER FEEDBACK NOTE (revealed by JS after a question is solved) --- */
+.quiz-feedback-note {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--bs-primary, #0f6e6b);
+    background: color-mix(
+        in srgb,
+        var(--bs-primary, #0f6e6b) 6%,
+        var(--bs-body-bg, #fff)
+    );
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+/* --- PER-OPTION EXPLANATION (shown under a single-choice box after a wrong pick) --- */
+.quiz-option-explanation {
+    margin: 4px 0 8px;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color, #666);
+}
