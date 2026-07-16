@@ -9,9 +9,21 @@ A demo of quizkit.
 ::: {.question}
 What is 2 + 2?
 
-- [ ] [3]{explanation="Close, but 2 + 2 = 4."}
+- [ ] 3
+
+    Close — that's 2 + 1. Add *one* more.
 - [x] 4
+
+    Right: **2 + 2 = 4**.
 - [ ] 5
+
+::: {.feedback .correct}
+Nice — this addition is the foundation for everything that follows.
+:::
+
+::: {.feedback .wrong}
+Count up from 2 by two more: 3, then **4**.
+:::
 :::
 
 ::: {.question}

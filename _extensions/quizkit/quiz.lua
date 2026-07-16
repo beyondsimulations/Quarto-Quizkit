@@ -22,6 +22,34 @@ local STRINGS = {
     multi_partial = "{h} von {t} richtigen Antworten gewählt",
     kprim_true = "richtig", kprim_false = "falsch", placeholder = "Deine Antwort…",
   },
+  fr = {
+    submit = "Vérifier", correct = "Correct !", wrong = "Pas tout à fait. ",
+    cooldown = "Réessayez dans {n} s …",
+    kprim_partial = "{c}/{t} affirmations évaluées correctement",
+    multi_partial = "{h} sur {t} bonnes réponses sélectionnées",
+    kprim_true = "vrai", kprim_false = "faux", placeholder = "Votre réponse…",
+  },
+  es = {
+    submit = "Comprobar", correct = "¡Correcto!", wrong = "No exactamente. ",
+    cooldown = "Inténtalo de nuevo en {n} s …",
+    kprim_partial = "{c}/{t} afirmaciones evaluadas correctamente",
+    multi_partial = "{h} de {t} respuestas correctas seleccionadas",
+    kprim_true = "verdadero", kprim_false = "falso", placeholder = "Tu respuesta…",
+  },
+  it = {
+    submit = "Verifica", correct = "Corretto!", wrong = "Non proprio. ",
+    cooldown = "Riprova tra {n} s …",
+    kprim_partial = "{c}/{t} affermazioni valutate correttamente",
+    multi_partial = "{h} su {t} risposte corrette selezionate",
+    kprim_true = "vero", kprim_false = "falso", placeholder = "La tua risposta…",
+  },
+  nl = {
+    submit = "Controleren", correct = "Correct!", wrong = "Niet helemaal. ",
+    cooldown = "Probeer opnieuw over {n} s …",
+    kprim_partial = "{c}/{t} stellingen juist beoordeeld",
+    multi_partial = "{h} van {t} juiste antwoorden geselecteerd",
+    kprim_true = "waar", kprim_false = "onwaar", placeholder = "Jouw antwoord…",
+  },
 }
 
 local CONFIG = { strings = STRINGS.en, lockout = 10, telemetry = nil, label = nil }
@@ -35,7 +63,9 @@ end
 
 -- Pandoc encodes task-list markers as the first Str of the item's first block:
 --   "☒" (U+2612) = checked/correct, "☐" (U+2610) = unchecked/wrong.
--- Returns checked(boolean), remaining_inlines; or nil if not a task-list item.
+-- Returns checked(boolean), label_inlines, extra_blocks; or nil if not a
+-- task-list item. extra_blocks are any blocks after the first (an indented
+-- markdown block under the item = that option's rich explanation).
 local function task_item(blocks)
   local first = blocks[1]
   if not first or not first.content then return nil end
@@ -47,7 +77,9 @@ local function task_item(blocks)
   else return nil end
   local rest = {}
   for i = 3, #first.content do rest[#rest + 1] = first.content[i] end  -- drop marker + Space
-  return checked, rest
+  local extra = {}
+  for i = 2, #blocks do extra[#extra + 1] = blocks[i] end
+  return checked, rest, extra
 end
 
 local function is_task_list(list)
@@ -149,18 +181,37 @@ end
 local function build_choice(list, submit_label)
   local correct = 0
   local opts = {}
-  for _, item in ipairs(list.content) do
-    local checked, rest = task_item(item)
+  local notes = {}
+  for i, item in ipairs(list.content) do
+    local checked, rest, extra = task_item(item)
     if checked then correct = correct + 1 end
+    -- Rich explanation: an indented markdown block under the option. Falls back
+    -- to the short {explanation="…"} attribute form on the label inlines.
     local exp = extract_explanation(rest)
-    local exp_attr = exp and string.format(' data-explanation="%s"', attr_escape(exp)) or ""
+    local note_html = nil
+    if extra and #extra > 0 then
+      note_html = pandoc.write(pandoc.Pandoc(extra), "html")
+    elseif exp then
+      note_html = "<p>" .. text_escape(exp) .. "</p>"
+    end
+    -- data-opt-index keys the note to its option so it survives shuffling.
+    if note_html then
+      notes[#notes + 1] = string.format(
+        '<div class="quiz-option-note" data-opt="%d">%s</div>', i - 1, note_html)
+    end
     opts[#opts + 1] = string.format(
-      '<button class="quiz-option" data-correct="%s"%s>%s</button>',
-      tostring(checked), exp_attr, inlines_to_html(rest))
+      '<button class="quiz-option" data-correct="%s" data-opt-index="%d">%s</button>',
+      tostring(checked), i - 1, inlines_to_html(rest))
   end
   local multi = correct >= 2 and " quiz-multi" or ""
   local html = string.format('<div class="quiz-options%s">\n%s\n</div>', multi,
     table.concat(opts, "\n"))
+  -- Per-option notes only for single-choice; on multi they'd leak which options
+  -- are correct, so omit them there.
+  if correct < 2 and #notes > 0 then
+    html = html .. string.format('\n<div class="quiz-option-notes" hidden>\n%s\n</div>',
+      table.concat(notes, "\n"))
+  end
   html = html .. string.format(
     '\n<div class="quiz-actions"><p class="quiz-feedback"></p>' ..
     '<button class="quiz-submit" disabled>%s</button></div>', text_escape(submit_label))
@@ -200,11 +251,19 @@ local function compile_question(qdiv, cfg)
   local is_kprim = qdiv.classes:includes("kprim")
   local answer = qdiv.attributes["answer"]
   local tolerance = qdiv.attributes["tolerance"]
-  local stem, list, feedback = {}, nil, nil
+  local stem, list = {}, nil
+  local feedbacks = {}  -- { {when=..., content=...}, … } in author order
   for _, blk in ipairs(qdiv.content) do
-    if blk.t == "BulletList" and is_task_list(blk) then list = blk
-    elseif blk.t == "Div" and blk.classes:includes("feedback") then feedback = blk
-    else stem[#stem + 1] = blk end
+    if blk.t == "BulletList" and is_task_list(blk) then
+      list = blk
+    elseif blk.t == "Div" and blk.classes:includes("feedback") then
+      local when = "always"
+      if blk.classes:includes("correct") then when = "correct"
+      elseif blk.classes:includes("wrong") then when = "wrong" end
+      feedbacks[#feedbacks + 1] = { when = when, content = blk.content }
+    else
+      stem[#stem + 1] = blk
+    end
   end
   local inner = {}
   for _, b in ipairs(stem) do inner[#inner + 1] = b end
@@ -217,9 +276,12 @@ local function compile_question(qdiv, cfg)
   elseif list then
     inner[#inner + 1] = build_choice(list, cfg.strings.submit)
   end
-  if feedback then
-    inner[#inner + 1] = raw('<div class="quiz-feedback-note" style="display:none">' ..
-      pandoc.write(pandoc.Pandoc(feedback.content), "html") .. '</div>')
+  -- Feedback notes: shown after answering. data-when is "always" (any outcome),
+  -- "correct", or "wrong" (from a .correct/.wrong class on the .feedback div).
+  for _, fb in ipairs(feedbacks) do
+    inner[#inner + 1] = raw(string.format(
+      '<div class="quiz-feedback-note" data-when="%s" style="display:none">%s</div>',
+      fb.when, pandoc.write(pandoc.Pandoc(fb.content), "html")))
   end
   return pandoc.Div(inner, pandoc.Attr("", { "puzzle-box" }))
 end

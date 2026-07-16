@@ -421,6 +421,10 @@
                             if (options)
                                 options.forEach((o) => (o.disabled = true));
 
+                            // Reveal correct/always feedback + the option's note.
+                            revealFeedback(true);
+                            if (selectedBtn) showOptionNote(selectedBtn);
+
                             // Check if ALL boxes in this scenario are done
                             checkAllSolved();
                         } else {
@@ -438,14 +442,11 @@
                                 }, 500);
                             }
 
-                            // Per-option explanation reveal (single-choice
-                            // only): revealing it for multi/K-Prim would leak
-                            // which options are wrong.
-                            if (selectedBtn) {
-                                const exp =
-                                    selectedBtn.getAttribute("data-explanation");
-                                if (exp) showOptionExplanation(exp);
-                            }
+                            // Reveal wrong/always feedback + the picked option's
+                            // note (single-choice only — per-option notes on
+                            // multi/K-Prim would leak which options are wrong).
+                            revealFeedback(false);
+                            if (selectedBtn) showOptionNote(selectedBtn);
 
                             if (
                                 scenario.getAttribute("data-disable-on-check") ===
@@ -478,10 +479,17 @@
                     });
                 }
 
-                // --- HELPER: PER-OPTION EXPLANATION ---
-                // Creates (or reuses) a single explanation box for this
-                // puzzle-box and fills it with the option's explanation text.
-                function showOptionExplanation(text) {
+                // --- HELPER: PER-OPTION NOTE (single-choice) ---
+                // Reveals the picked option's explanation (rich HTML) in a shared
+                // box below the options. Keyed by data-opt-index so it survives
+                // option shuffling. Shown for both correct and wrong picks.
+                function showOptionNote(picked) {
+                    const idx = picked.getAttribute("data-opt-index");
+                    if (idx == null) return;
+                    const src = box.querySelector(
+                        '.quiz-option-note[data-opt="' + idx + '"]',
+                    );
+                    if (!src) return;
                     let ex = box.querySelector(".quiz-option-explanation");
                     if (!ex) {
                         ex = document.createElement("div");
@@ -495,7 +503,21 @@
                             box.appendChild(ex);
                         }
                     }
-                    ex.innerText = text;
+                    ex.innerHTML = src.innerHTML;
+                }
+
+                // --- HELPER: OUTCOME FEEDBACK ---
+                // Shows the .quiz-feedback-note blocks whose data-when matches the
+                // outcome: "always" always, "correct"/"wrong" per result.
+                function revealFeedback(correct) {
+                    box.querySelectorAll(".quiz-feedback-note").forEach((n) => {
+                        const when = n.getAttribute("data-when");
+                        const show =
+                            when === "always" ||
+                            (correct && when === "correct") ||
+                            (!correct && when === "wrong");
+                        n.style.display = show ? "" : "none";
+                    });
                 }
 
                 // --- HELPER: PENALTY TIMER ---
@@ -548,6 +570,11 @@
                     // Clear any revealed single-choice explanation.
                     const ex = box.querySelector(".quiz-option-explanation");
                     if (ex) ex.remove();
+
+                    // Hide any outcome feedback shown on the failed attempt.
+                    box.querySelectorAll(".quiz-feedback-note").forEach(
+                        (n) => (n.style.display = "none"),
+                    );
 
                     if (options)
                         options.forEach((o) => {

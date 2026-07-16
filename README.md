@@ -7,7 +7,7 @@ A reusable [Quarto](https://quarto.org) extension for **formative self-check qui
 - **Branded automatically** — styling rides on Bootstrap CSS variables (`--bs-primary`, `--bs-success`, …), so the quiz matches any Quarto theme or `_brand.yml` with no per-site styling.
 - **Answer-safe for plaintext exports** — a format-aware filter emits the full widget in HTML but strips every answer from Markdown/`gfm`/`hugo-md` renders, so answer keys never leak into a plaintext corpus.
 - **Optional, anonymous telemetry** — off by default. When enabled, it emits aggregate [umami](https://umami.is) events (no cookies, no per-student identity), or a generic DOM event you can wire to any analytics.
-- **Internationalised** — English and German UI strings ship built in; override any string.
+- **Internationalised** — English, German, French, Spanish, Italian, and Dutch UI strings ship built in; override any string, or add your own language.
 
 Quizzes are **formative and client-side**: answers live in the page, nothing is graded or sent anywhere unless you opt in. There is no login, no backend, and no per-student tracking by design.
 
@@ -98,17 +98,32 @@ Rate each statement.
 :::
 ````
 
-### Per-option explanation
+### Per-option explanation (single choice)
 
-Wrap an option in a bracketed span with an `explanation` attribute. The label shows normally; the explanation appears under the box after a wrong single-choice pick:
+Give an option its own explanation, revealed under the box when that option is picked — on **both correct and wrong** picks. Two forms:
+
+**Short** — a bracketed span with an `explanation` attribute:
 
 ````markdown
 - [ ] [Around 90% of all products fail.]{explanation="An unsourced figure repeated for decades."}
 ````
 
-### Per-question feedback
+**Rich (any length, full markdown)** — indent a block under the option:
 
-A `::: {.feedback}` block inside a question is revealed after the question is answered:
+````markdown
+- [x] 4
+
+    Right: **2 + 2 = 4**. This is the basis for everything that follows.
+- [ ] 3
+
+    Close — that's 2 + 1. *Add one more.*
+````
+
+Per-option explanations are single-choice only; on multi-select and K-prim they would leak which options are correct, so they're omitted there.
+
+### Per-question feedback (outcome-specific)
+
+A `::: {.feedback}` block inside a question is revealed after it's answered — full markdown, any length. Add `.correct` or `.wrong` to show it only on that outcome; a plain `.feedback` shows on either. Combine them freely:
 
 ````markdown
 ::: {.question}
@@ -119,6 +134,14 @@ Is 7 prime?
 
 ::: {.feedback}
 A prime has exactly two divisors: 1 and itself.
+:::
+
+::: {.feedback .correct}
+Exactly — 7's only divisors are 1 and 7.
+:::
+
+::: {.feedback .wrong}
+Check: can any number other than 1 and 7 divide it evenly?
 :::
 :::
 ````
@@ -156,7 +179,7 @@ All optional. Put a `quiz:` block in `_quarto.yml` (project-wide) or a document'
 
 ```yaml
 quiz:
-  lang: de              # en (default) | de — selects the built-in UI strings
+  lang: de              # en (default) | de | fr | es | it | nl — built-in UI strings
   lockout: 10           # default cooldown seconds (overridable per .quiz)
   strings:              # override any individual UI string
     submit: "Prüfen"
