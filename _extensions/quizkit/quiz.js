@@ -523,9 +523,11 @@
                 // --- HELPER: PENALTY TIMER ---
                 function startPenaltyTimer(seconds, customMessage) {
                     // A zero (or negative) lockout disables the cooldown: reset
-                    // immediately so the student can retry at once.
+                    // immediately so the student can retry at once, but keep the
+                    // wrong-answer feedback/explanation visible (there is no
+                    // cooldown window in which to read it otherwise).
                     if (seconds <= 0) {
-                        resetState();
+                        resetState(true);
                         return;
                     }
 
@@ -564,17 +566,23 @@
                 }
 
                 // --- HELPER: RESET AFTER PENALTY ---
-                function resetState() {
-                    feedback.innerText = "";
+                // keepFeedback re-enables the controls but leaves the wrong-answer
+                // feedback/explanation on screen. Used for an immediate retry
+                // (lockout="0"), where wiping it synchronously would clear it
+                // before the student ever sees it.
+                function resetState(keepFeedback) {
+                    if (!keepFeedback) {
+                        feedback.innerText = "";
 
-                    // Clear any revealed single-choice explanation.
-                    const ex = box.querySelector(".quiz-option-explanation");
-                    if (ex) ex.remove();
+                        // Clear any revealed single-choice explanation.
+                        const ex = box.querySelector(".quiz-option-explanation");
+                        if (ex) ex.remove();
 
-                    // Hide any outcome feedback shown on the failed attempt.
-                    box.querySelectorAll(".quiz-feedback-note").forEach(
-                        (n) => (n.style.display = "none"),
-                    );
+                        // Hide any outcome feedback shown on the failed attempt.
+                        box.querySelectorAll(".quiz-feedback-note").forEach(
+                            (n) => (n.style.display = "none"),
+                        );
+                    }
 
                     if (options)
                         options.forEach((o) => {
