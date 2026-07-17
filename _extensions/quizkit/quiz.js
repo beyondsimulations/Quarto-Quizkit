@@ -484,7 +484,10 @@
                         document.dispatchEvent(
                             new CustomEvent("quiz:answer", { detail }),
                         );
-                        if (CFG.telemetry && window.umami) {
+                        // Fire umami automatically whenever it's present on the
+                        // page (e.g. the site already loads it), unless telemetry
+                        // was explicitly opted out with quiz.telemetry: false.
+                        if (window.umami && CFG.telemetry !== false) {
                             try {
                                 window.umami.track("quiz-answer", detail);
                             } catch (e) {}

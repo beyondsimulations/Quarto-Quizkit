@@ -8,7 +8,7 @@ A reusable [Quarto](https://quarto.org) extension for **formative self-check qui
 - **Custom labels & shuffle** — override any question's submit button text; optionally randomise option order and/or question order.
 - **Branded automatically** — styling rides on Bootstrap CSS variables (`--bs-primary`, `--bs-success`, …), so the quiz matches any Quarto theme or `_brand.yml` with no per-site styling.
 - **Answer-safe for plaintext exports** — a format-aware filter emits the full widget in HTML but strips every answer from Markdown/`gfm`/`hugo-md` renders, so answer keys never leak into a plaintext corpus.
-- **Optional, anonymous telemetry** — off by default. When enabled, it emits aggregate [umami](https://umami.is) events (no cookies, no per-student identity), or a generic DOM event you can wire to any analytics.
+- **Automatic, anonymous telemetry** — if your page already loads [umami](https://umami.is), quizzes emit aggregate `quiz-answer` events automatically (no cookies, no per-student identity, no extra config). Opt out with one line, or wire the generic DOM event to any analytics.
 - **Internationalised** — English, German, French, Spanish, Italian, and Dutch UI strings ship built in; override any string, or add your own language.
 
 Quizzes are **formative and client-side**: answers live in the page, nothing is graded or sent anywhere unless you opt in. There is no login, no backend, and no per-student tracking by design.
@@ -231,7 +231,7 @@ quiz:
   strings:              # override any individual UI string
     submit: "Prüfen"
     correct: "Stimmt!"
-  telemetry:            # omit this whole block to disable telemetry entirely
+  telemetry:            # only needed if the page doesn't already load umami; set 'telemetry: false' to opt out
     umami-src: "https://your-umami.example.com/script.js"
     umami-website-id: "00000000-0000-0000-0000-000000000000"
     label: "My Course"  # optional; defaults to the page title
@@ -241,11 +241,21 @@ Overridable string keys: `submit`, `correct`, `wrong`, `cooldown` (`{n}` = secon
 
 ## Telemetry — three modes
 
-**1. Off (default).** No `quiz.telemetry` block ⇒ no script is loaded and nothing is sent. GDPR-clean because the default is no tracking at all.
+**1. Automatic (default).** If the page already loads [umami](https://umami.is) — e.g. your site runs it for page analytics — Quizkit emits an anonymous, aggregate event `quiz-answer` on each answer, with `{ label, quiz, question, correct }`. No configuration, and no second umami script is injected. umami is cookieless and stores no per-user identity, so this inherits your site's existing analytics posture. If the page does not load umami, nothing is sent.
 
-**2. umami.** Add the `quiz.telemetry` block above. Quizkit loads the umami script and, on each answer, sends an anonymous, aggregate event `quiz-answer` with `{ label, quiz, question, correct }`. umami is cookieless and stores no per-user identity.
+**2. Self-contained umami.** For a page that does *not* already load umami, add the `quiz.telemetry` block so Quizkit loads the script itself:
 
-**3. Your own analytics.** Quizkit dispatches a DOM event on every answer regardless of telemetry config, so you can forward it anywhere:
+```yaml
+quiz:
+  telemetry:
+    umami-src: "https://your-umami.example.com/script.js"
+    umami-website-id: "00000000-0000-0000-0000-000000000000"
+    label: "My Course"   # optional; defaults to the page title
+```
+
+**3. Opt out.** Set `quiz.telemetry: false` to disable umami firing entirely, even when umami is present on the page.
+
+Regardless of the mode, Quizkit also dispatches a `quiz:answer` DOM event on every answer, so you can forward results to any analytics:
 
 ```js
 document.addEventListener("quiz:answer", (e) => {

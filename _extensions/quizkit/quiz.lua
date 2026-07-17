@@ -153,12 +153,15 @@ local function inject_config()
     parts[#parts + 1] = string.format('"label":"%s"', json_escape(CONFIG.label))
   end
   local t = CONFIG.telemetry
-  if t and t.website then
+  if t == false then
+    parts[#parts + 1] = '"telemetry":false'
+  elseif type(t) == "table" and t.website then
     parts[#parts + 1] = string.format('"telemetry":{"website":"%s"}', json_escape(t.website))
   end
+  -- t nil or true ⇒ emit no telemetry key ⇒ JS auto-fires when umami is present.
   quarto.doc.include_text("in-header",
     "<script>window.quizkitConfig={" .. table.concat(parts, ",") .. "};</script>")
-  if t and t.src and t.website then
+  if type(t) == "table" and t.src and t.website then
     quarto.doc.include_text("in-header", string.format(
       '<script defer src="%s" data-website-id="%s"></script>',
       attr_escape(t.src), attr_escape(t.website)))
@@ -330,12 +333,18 @@ function Meta(meta)
   if q.persist ~= nil then CONFIG.persist = pandoc.utils.stringify(q.persist) ~= "false" end
   if q.shuffle ~= nil then CONFIG.shuffle = pandoc.utils.stringify(q.shuffle) ~= "false" end
   if q["shuffle-questions"] ~= nil then CONFIG.shuffle_questions = pandoc.utils.stringify(q["shuffle-questions"]) ~= "false" end
-  if q.telemetry then
-    CONFIG.telemetry = {
-      src = q.telemetry["umami-src"] and pandoc.utils.stringify(q.telemetry["umami-src"]),
-      website = q.telemetry["umami-website-id"] and pandoc.utils.stringify(q.telemetry["umami-website-id"]),
-    }
-    if q.telemetry.label then CONFIG.label = pandoc.utils.stringify(q.telemetry.label) end
+  -- telemetry: a table (umami block) ⇒ self-inject; the scalar false ⇒ opt out;
+  -- absent ⇒ automatic (fire only if the page already loads umami).
+  if q.telemetry ~= nil then
+    if type(q.telemetry) == "table" then
+      CONFIG.telemetry = {
+        src = q.telemetry["umami-src"] and pandoc.utils.stringify(q.telemetry["umami-src"]),
+        website = q.telemetry["umami-website-id"] and pandoc.utils.stringify(q.telemetry["umami-website-id"]),
+      }
+      if q.telemetry.label then CONFIG.label = pandoc.utils.stringify(q.telemetry.label) end
+    else
+      CONFIG.telemetry = pandoc.utils.stringify(q.telemetry) ~= "false"
+    end
   end
   return nil
 end
