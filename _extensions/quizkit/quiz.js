@@ -175,16 +175,21 @@
                 resolveFlag("data-shuffle-questions", CFG.shuffleQuestions, false) &&
                 boxes.length > 1
             ) {
-                const parent = boxes[0].parentNode;
-                const anchor = boxes[boxes.length - 1].nextSibling;
-                const arr = Array.from(boxes);
-                for (let i = arr.length - 1; i > 0; i--) {
+                const originals = Array.from(boxes);
+                const order = originals.slice();
+                for (let i = order.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
-                    const tmp = arr[i];
-                    arr[i] = arr[j];
-                    arr[j] = tmp;
+                    const tmp = order[i];
+                    order[i] = order[j];
+                    order[j] = tmp;
                 }
-                arr.forEach((b) => parent.insertBefore(b, anchor));
+                // Swap each box into a slot originally occupied by a box, so any
+                // non-question siblings (intro prose, headers) stay put.
+                const slots = originals.map(() =>
+                    document.createComment("quizkit-slot"),
+                );
+                originals.forEach((b, i) => b.replaceWith(slots[i]));
+                slots.forEach((ph, i) => ph.replaceWith(order[i]));
             }
 
             boxes.forEach((box) => {
@@ -799,6 +804,13 @@
                                 .querySelectorAll("button")
                                 .forEach((b) => (b.disabled = true)),
                         );
+                    // Reapply the container-level wrong highlight to match the
+                    // live freeze (single-choice marks the picked button, which
+                    // isn't persisted, so it's intentionally skipped here).
+                    if (isMulti && optionsContainer)
+                        optionsContainer.classList.add("wrong");
+                    if (inputField) inputField.classList.add("wrong");
+                    if (kprimTable) kprimTable.classList.add("wrong");
                     submitBtn.disabled = true;
                     feedback.style.color = "var(--bs-danger, #db6b6b)";
                     feedback.innerText = S.wrong;
