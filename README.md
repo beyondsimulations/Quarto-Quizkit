@@ -2,7 +2,7 @@
 
 A reusable [Quarto](https://quarto.org) extension for **formative self-check quizzes** on HTML websites and documents. Write questions as readable Markdown fenced divs; Quizkit compiles them into an interactive, self-grading widget that **brands itself automatically** from your site's theme or `_brand.yml`.
 
-- **Zero configuration** — add the extension, write a quiz, done. Nothing is tracked.
+- **Zero configuration** — add the extension, write a quiz, done.
 - **Four question types** — single choice, multi-select, numeric/text (with tolerant parsing), and K-prim (true/false grids).
 - **Progress & persistence** — a live solved-counter and end-of-quiz first-try score; solved progress is saved and restored across reloads (localStorage), with a "Start over" control. On by default, with per-quiz and project-wide opt-outs.
 - **Custom labels & shuffle** — override any question's submit button text; optionally randomise option order and/or question order.
@@ -11,7 +11,7 @@ A reusable [Quarto](https://quarto.org) extension for **formative self-check qui
 - **Automatic, anonymous telemetry** — if your page already loads [umami](https://umami.is), quizzes emit aggregate `quiz-answer` events automatically (no cookies, no per-student identity, no extra config). Opt out with one line, or wire the generic DOM event to any analytics.
 - **Internationalised** — English, German, French, Spanish, Italian, and Dutch UI strings ship built in; override any string, or add your own language.
 
-Quizzes are **formative and client-side**: answers live in the page, nothing is graded or sent anywhere unless you opt in. There is no login, no backend, and no per-student tracking by design.
+Quizzes are **formative and client-side**: answers live in the page and nothing is graded. There is no login, no backend, and no per-student identity. If your site already loads [umami](https://umami.is), anonymous aggregate events fire automatically — opt out with `quiz.telemetry: false` (see [Telemetry](#telemetry--three-modes)).
 
 ## Installation
 

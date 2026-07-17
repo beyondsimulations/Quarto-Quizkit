@@ -336,14 +336,16 @@ function Meta(meta)
   -- telemetry: a table (umami block) ⇒ self-inject; the scalar false ⇒ opt out;
   -- absent ⇒ automatic (fire only if the page already loads umami).
   if q.telemetry ~= nil then
-    if type(q.telemetry) == "table" then
+    local tel = q.telemetry
+    if type(tel) == "table" and (tel["umami-src"] or tel["umami-website-id"]) then
       CONFIG.telemetry = {
-        src = q.telemetry["umami-src"] and pandoc.utils.stringify(q.telemetry["umami-src"]),
-        website = q.telemetry["umami-website-id"] and pandoc.utils.stringify(q.telemetry["umami-website-id"]),
+        src = tel["umami-src"] and pandoc.utils.stringify(tel["umami-src"]),
+        website = tel["umami-website-id"] and pandoc.utils.stringify(tel["umami-website-id"]),
       }
-      if q.telemetry.label then CONFIG.label = pandoc.utils.stringify(q.telemetry.label) end
+      if tel.label then CONFIG.label = pandoc.utils.stringify(tel.label) end
     else
-      CONFIG.telemetry = pandoc.utils.stringify(q.telemetry) ~= "false"
+      -- scalar false/true, quoted "false"/"true", or a keyless map ⇒ on/off flag
+      CONFIG.telemetry = pandoc.utils.stringify(tel) ~= "false"
     end
   end
   return nil
