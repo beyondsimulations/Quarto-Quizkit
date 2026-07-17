@@ -244,15 +244,23 @@ end
 local function build_kprim(list, submit_label, t_true, t_false)
   local rows = {}
   for _, item in ipairs(list.content) do
-    local checked, rest = task_item(item)
+    local checked, rest, extra = task_item(item)
     local key = checked and "richtig" or "falsch"
+    -- Per-statement explanation: an indented markdown block under the item,
+    -- hidden until the whole grid is solved. Lives inside the task-list item
+    -- so strip_blocks drops it from the corpus by construction.
+    local note = ""
+    if extra and #extra > 0 then
+      note = string.format('<div class="kprim-note" style="display:none">%s</div>',
+        pandoc.write(pandoc.Pandoc(extra), "html"))
+    end
     rows[#rows + 1] = string.format(
       '<div class="kprim-row" data-kprim="%s">' ..
       '<span class="kprim-statement">%s</span>' ..
       '<div class="kprim-buttons">' ..
       '<button class="kprim-true">%s</button>' ..
-      '<button class="kprim-false">%s</button></div></div>',
-      key, inlines_to_html(rest), text_escape(t_true), text_escape(t_false))
+      '<button class="kprim-false">%s</button></div>%s</div>',
+      key, inlines_to_html(rest), text_escape(t_true), text_escape(t_false), note)
   end
   return raw(string.format(
     '<div class="kprim-table">\n%s\n</div>\n' ..

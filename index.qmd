@@ -47,7 +47,11 @@ How many integers x satisfy |x - 10| ≤ 3? Type the number.
 Rate each statement.
 
 - [x] Every integer is a rational number.
+
+    Because ℤ ⊂ ℚ — every integer *n* equals *n*/1.
 - [ ] Pi is a rational number.
+
+    Pi is irrational (proved by Lambert, 1761).
 :::
 
 ::: {.reveal}

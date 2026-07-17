@@ -486,6 +486,11 @@
                                         (b) => (b.disabled = true),
                                     );
                                 });
+                                // Grid fully solved → reveal every statement's
+                                // note (leak-safe: only shown once all correct).
+                                box.querySelectorAll(".kprim-note").forEach(
+                                    (n) => (n.style.display = ""),
+                                );
                             } else if (isMulti) {
                                 selectedSet.forEach((o) => {
                                     o.classList.remove("selected");
@@ -752,12 +757,16 @@
                     submitBtn.style.display = "none";
                     if (options) options.forEach((o) => (o.disabled = true));
                     if (inputField) inputField.disabled = true;
-                    if (kprimTable)
+                    if (kprimTable) {
                         kprimRows.forEach((row) =>
                             row
                                 .querySelectorAll("button")
                                 .forEach((b) => (b.disabled = true)),
                         );
+                        box.querySelectorAll(".kprim-note").forEach(
+                            (n) => (n.style.display = ""),
+                        );
+                    }
                     feedback.classList.add("success");
                     feedback.innerText = S.correct;
                     revealFeedback(true);

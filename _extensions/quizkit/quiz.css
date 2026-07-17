@@ -350,3 +350,18 @@
     border-color: var(--bs-primary, #0f6e6b);
     color: var(--bs-primary, #0f6e6b);
 }
+
+/* --- K-PRIM PER-STATEMENT NOTE (revealed after the grid is solved) --- */
+.kprim-note {
+    flex-basis: 100%;
+    margin-top: 6px;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    border-left: 3px solid var(--bs-success, #2e7d32);
+    background: color-mix(
+        in srgb,
+        var(--bs-success, #2e7d32) 6%,
+        var(--bs-body-bg, #fff)
+    );
+    border-radius: 4px;
+}
