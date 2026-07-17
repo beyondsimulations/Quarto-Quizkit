@@ -557,6 +557,8 @@
                                 feedback.style.color =
                                     "var(--bs-danger, #db6b6b)";
                                 feedback.innerText = S.wrong;
+                                box.setAttribute("data-frozen", "true");
+                                persistBox();
                             } else {
                                 // Penalty Timer
                                 startPenaltyTimer(
@@ -736,6 +738,7 @@
                                 a: box.getAttribute("data-attempted") === "true",
                                 f: box.getAttribute("data-first-try") === "true",
                                 s: box.classList.contains("solved"),
+                                d: box.getAttribute("data-frozen") === "true",
                             }),
                         );
                     } catch (e) {}
@@ -760,6 +763,23 @@
                     revealFeedback(true);
                 }
 
+                // Render a box in the frozen (disable-on-check wrong) state on
+                // restore: locked controls, disabled submit, wrong feedback.
+                function markFrozenFromRestore() {
+                    if (options) options.forEach((o) => (o.disabled = true));
+                    if (inputField) inputField.disabled = true;
+                    if (kprimTable)
+                        kprimRows.forEach((row) =>
+                            row
+                                .querySelectorAll("button")
+                                .forEach((b) => (b.disabled = true)),
+                        );
+                    submitBtn.disabled = true;
+                    feedback.style.color = "var(--bs-danger, #db6b6b)";
+                    feedback.innerText = S.wrong;
+                    revealFeedback(false);
+                }
+
                 function restoreBox() {
                     if (!persistOn) return;
                     let stored;
@@ -776,6 +796,7 @@
                         box.setAttribute("data-first-try", String(!!stored.f));
                     }
                     if (stored.s) markSolvedFromRestore();
+                    else if (stored.d) markFrozenFromRestore();
                 }
 
                 // Restore any saved state for this box on load.
