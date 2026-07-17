@@ -101,15 +101,15 @@
 
             // --- PROGRESS / FIRST-TRY SCORE ---
             // Per-quiz attr (data-progress) overrides the global default (on).
-            function resolveFlag(attr, globalOn) {
+            function resolveFlag(attr, globalOn, defaultOn) {
                 const a = scenario.getAttribute(attr);
                 if (a === "false") return false;
                 if (a === "true") return true;
-                return globalOn !== false;
+                return globalOn !== undefined ? globalOn !== false : defaultOn;
             }
-            const progressOn = resolveFlag("data-progress", CFG.progress);
+            const progressOn = resolveFlag("data-progress", CFG.progress, true);
             const progressEl = scenario.querySelector(".quiz-progress");
-            const persistOn = resolveFlag("data-persist", CFG.persist);
+            const persistOn = resolveFlag("data-persist", CFG.persist, true);
             const quizIndex = [
                 ...document.querySelectorAll(".scenario-block"),
             ].indexOf(scenario);
@@ -172,7 +172,7 @@
             // .puzzle-box elements before they are wired. Off by default.
             // (Persistence is content-hash keyed, so it survives reordering.)
             if (
-                resolveFlag("data-shuffle-questions", CFG.shuffleQuestions) &&
+                resolveFlag("data-shuffle-questions", CFG.shuffleQuestions, false) &&
                 boxes.length > 1
             ) {
                 const parent = boxes[0].parentNode;
@@ -197,7 +197,7 @@
 
                 // Optional per-scenario option shuffle: Fisher–Yates over the
                 // option buttons so their DOM order is randomized on load.
-                if (resolveFlag("data-shuffle", CFG.shuffle) && optionsContainer) {
+                if (resolveFlag("data-shuffle", CFG.shuffle, false) && optionsContainer) {
                     const kids = [...optionsContainer.children];
                     for (let i = kids.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
