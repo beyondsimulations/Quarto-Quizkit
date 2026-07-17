@@ -4,6 +4,8 @@ A reusable [Quarto](https://quarto.org) extension for **formative self-check qui
 
 - **Zero configuration** — add the extension, write a quiz, done. Nothing is tracked.
 - **Four question types** — single choice, multi-select, numeric/text (with tolerant parsing), and K-prim (true/false grids).
+- **Progress & persistence** — a live solved-counter and end-of-quiz first-try score; solved progress is saved and restored across reloads (localStorage), with a "Start over" control. On by default, with per-quiz and project-wide opt-outs.
+- **Custom labels & shuffle** — override any question's submit button text; optionally randomise option order and/or question order.
 - **Branded automatically** — styling rides on Bootstrap CSS variables (`--bs-primary`, `--bs-success`, …), so the quiz matches any Quarto theme or `_brand.yml` with no per-site styling.
 - **Answer-safe for plaintext exports** — a format-aware filter emits the full widget in HTML but strips every answer from Markdown/`gfm`/`hugo-md` renders, so answer keys never leak into a plaintext corpus.
 - **Optional, anonymous telemetry** — off by default. When enabled, it emits aggregate [umami](https://umami.is) events (no cookies, no per-student identity), or a generic DOM event you can wire to any analytics.
@@ -98,6 +100,31 @@ Rate each statement.
 :::
 ````
 
+Indent a markdown block under a statement to attach a per-statement explanation. All notes are revealed together only once the whole grid is solved correctly, so they can't be used to probe the answers:
+
+````markdown
+::: {.question .kprim}
+Rate each statement.
+
+- [x] Every integer is a rational number.
+
+    Because ℤ ⊂ ℚ.
+- [ ] Pi is a rational number.
+
+    Pi is irrational (Lambert, 1761).
+:::
+````
+
+### Custom submit label
+
+Any question can override its submit button text with a `submit` attribute (works for every question type):
+
+````markdown
+::: {.question submit="Confirm answer"}
+…
+:::
+````
+
 ### Per-option explanation (single choice)
 
 Give an option its own explanation, revealed under the box when that option is picked — on **both correct and wrong** picks. Two forms:
@@ -164,14 +191,30 @@ Attributes on the `.quiz` div:
 |---|---|---|
 | `lockout="10"` | `10` | Seconds a question is locked after a wrong answer. `0` disables the cooldown. |
 | `shuffle="true"` | off | Randomise option order on load. |
+| `shuffle-questions="true"` | off | Randomise the order of questions within the quiz on load. |
 | `disable-on-check="true"` | off | Freeze a question after the first check instead of allowing retries. |
 | `label="…"` | page index | Telemetry label for this quiz (see below). |
+| `progress="false"` | on | Hide the live progress bar and first-try score for this quiz. |
+| `persist="false"` | on | Disable saved progress and the "Start over" button for this quiz. |
 
 ```markdown
 ::: {.quiz lockout="5" shuffle="true"}
 …
 :::
 ```
+
+### Progress & persistence
+
+Every quiz shows a live **solved counter** and, on completion, a **first-try score** (how many questions were correct on the first attempt). Solved progress is **persisted** in the browser's `localStorage` and restored on reload; a **Start over** button clears it. Both are on by default.
+
+Persistence is keyed by a content hash of each question, so editing a question automatically invalidates its saved state — a changed question never shows as falsely "solved". It is entirely client-side and anonymous: no server, no login, no per-student identity. If `localStorage` is unavailable (private mode), the quiz still works, just without memory.
+
+Opt out per-quiz (attribute on `.quiz`) or project-wide (`quiz:` block):
+
+| | Progress bar / score | Saved progress |
+|---|---|---|
+| `.quiz` attribute | `progress="false"` | `persist="false"` |
+| `quiz:` metadata | `progress: false` | `persist: false` |
 
 ## Configuration
 
@@ -181,6 +224,10 @@ All optional. Put a `quiz:` block in `_quarto.yml` (project-wide) or a document'
 quiz:
   lang: de              # en (default) | de | fr | es | it | nl — built-in UI strings
   lockout: 10           # default cooldown seconds (overridable per .quiz)
+  progress: true            # false to hide the solved counter + first-try score everywhere
+  persist: true             # false to disable saved progress everywhere
+  shuffle: false            # true to randomise option order by default
+  shuffle-questions: false  # true to randomise question order by default
   strings:              # override any individual UI string
     submit: "Prüfen"
     correct: "Stimmt!"

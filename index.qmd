@@ -59,3 +59,47 @@ Nicely done — you finished the demo quiz.
 :::
 
 :::
+
+## Opt-out example (no progress bar, no persistence)
+
+::: {.quiz progress="false" persist="false"}
+
+::: {.question submit="Lock it in"}
+Which of these is a prime number?
+
+- [ ] 9
+- [x] 11
+- [ ] 15
+:::
+
+:::
+
+## Shuffle example (randomised option and question order)
+
+::: {.quiz shuffle="true" shuffle-questions="true"}
+
+::: {.question}
+Pick the even number.
+
+- [ ] 3
+- [x] 4
+- [ ] 7
+:::
+
+::: {.question}
+Pick the vowel.
+
+- [x] a
+- [ ] b
+- [ ] c
+:::
+
+::: {.question}
+Pick the largest.
+
+- [ ] 1
+- [ ] 2
+- [x] 3
+:::
+
+:::
