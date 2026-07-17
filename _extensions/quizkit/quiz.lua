@@ -64,7 +64,7 @@ local STRINGS = {
   },
 }
 
-local CONFIG = { strings = STRINGS.en, lockout = 10, telemetry = nil, label = nil, progress = true, persist = true }
+local CONFIG = { strings = STRINGS.en, lockout = 10, telemetry = nil, label = nil, progress = true, persist = true, shuffle = false, shuffle_questions = false }
 
 -- Render inlines to an HTML string (preserves math/emphasis/code).
 -- pandoc.Plain avoids the <p> wrapper Para would add.
@@ -142,6 +142,8 @@ local function inject_config()
   local parts = { string.format('"lockout":%d', math.floor(tonumber(CONFIG.lockout) or 10)) }
   parts[#parts + 1] = string.format('"progress":%s', CONFIG.progress and "true" or "false")
   parts[#parts + 1] = string.format('"persist":%s', CONFIG.persist and "true" or "false")
+  parts[#parts + 1] = string.format('"shuffle":%s', CONFIG.shuffle and "true" or "false")
+  parts[#parts + 1] = string.format('"shuffleQuestions":%s', CONFIG.shuffle_questions and "true" or "false")
   local kv = {}
   for k, v in pairs(CONFIG.strings) do
     kv[#kv + 1] = string.format('"%s":"%s"', k, json_escape(v))
@@ -326,6 +328,8 @@ function Meta(meta)
   if q.label then CONFIG.label = pandoc.utils.stringify(q.label) end
   if q.progress ~= nil then CONFIG.progress = pandoc.utils.stringify(q.progress) ~= "false" end
   if q.persist ~= nil then CONFIG.persist = pandoc.utils.stringify(q.persist) ~= "false" end
+  if q.shuffle ~= nil then CONFIG.shuffle = pandoc.utils.stringify(q.shuffle) ~= "false" end
+  if q["shuffle-questions"] ~= nil then CONFIG.shuffle_questions = pandoc.utils.stringify(q["shuffle-questions"]) ~= "false" end
   if q.telemetry then
     CONFIG.telemetry = {
       src = q.telemetry["umami-src"] and pandoc.utils.stringify(q.telemetry["umami-src"]),
@@ -376,7 +380,7 @@ function Div(el)
     '</div>'))
   local attrs = {}
   local function put(k) if el.attributes[k] then attrs["data-" .. k] = el.attributes[k] end end
-  put("label"); put("lockout"); put("shuffle"); put("disable-on-check"); put("progress"); put("persist")
+  put("label"); put("lockout"); put("shuffle"); put("disable-on-check"); put("progress"); put("persist"); put("shuffle-questions")
   return pandoc.Div(out, pandoc.Attr("", { "scenario-block" }, attrs))
 end
 

@@ -168,6 +168,25 @@
                 });
             }
 
+            // Optional question-order shuffle: Fisher–Yates over the
+            // .puzzle-box elements before they are wired. Off by default.
+            // (Persistence is content-hash keyed, so it survives reordering.)
+            if (
+                resolveFlag("data-shuffle-questions", CFG.shuffleQuestions) &&
+                boxes.length > 1
+            ) {
+                const parent = boxes[0].parentNode;
+                const anchor = boxes[boxes.length - 1].nextSibling;
+                const arr = Array.from(boxes);
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    const tmp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = tmp;
+                }
+                arr.forEach((b) => parent.insertBefore(b, anchor));
+            }
+
             boxes.forEach((box) => {
                 const optionsContainer = box.querySelector(".quiz-options");
 
@@ -178,10 +197,7 @@
 
                 // Optional per-scenario option shuffle: Fisher–Yates over the
                 // option buttons so their DOM order is randomized on load.
-                if (
-                    scenario.getAttribute("data-shuffle") === "true" &&
-                    optionsContainer
-                ) {
+                if (resolveFlag("data-shuffle", CFG.shuffle) && optionsContainer) {
                     const kids = [...optionsContainer.children];
                     for (let i = kids.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
