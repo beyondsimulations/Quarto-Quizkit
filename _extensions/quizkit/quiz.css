@@ -317,3 +317,19 @@
     font-size: 0.9rem;
     color: var(--bs-secondary-color, #666);
 }
+
+/* --- PROGRESS BAR (live solved counter + first-try score) --- */
+.quiz-progress {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: baseline;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color, #666);
+}
+
+.quiz-progress-score {
+    font-weight: 600;
+    color: var(--bs-success, #2e7d32);
+}

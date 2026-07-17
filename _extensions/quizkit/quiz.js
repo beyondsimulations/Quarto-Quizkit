@@ -11,6 +11,8 @@
             cooldown: "Try again in {n}s …",
             kprim_partial: "{c}/{t} statements rated correctly",
             multi_partial: "{h} of {t} correct answers selected",
+            progress: "{s} / {t} solved",
+            firsttry: "{c} / {t} on the first try",
         },
         CFG.strings || {},
     );
@@ -95,6 +97,47 @@
             const totalRequired = Array.from(boxes).filter((b) =>
                 b.querySelector(".quiz-submit"),
             ).length;
+
+            // --- PROGRESS / FIRST-TRY SCORE ---
+            // Per-quiz attr (data-progress) overrides the global default (on).
+            function resolveFlag(attr, globalOn) {
+                const a = scenario.getAttribute(attr);
+                if (a === "false") return false;
+                if (a === "true") return true;
+                return globalOn !== false;
+            }
+            const progressOn = resolveFlag("data-progress", CFG.progress);
+            const progressEl = scenario.querySelector(".quiz-progress");
+            if (progressEl && (!progressOn || totalRequired === 0)) {
+                progressEl.style.display = "none";
+            }
+
+            function updateProgress() {
+                if (!progressOn || !progressEl) return;
+                const solved =
+                    scenario.querySelectorAll(".puzzle-box.solved").length;
+                const countEl =
+                    progressEl.querySelector(".quiz-progress-count");
+                if (countEl)
+                    countEl.textContent = fmt(S.progress, {
+                        s: solved,
+                        t: totalRequired,
+                    });
+            }
+
+            function showFirstTryScore() {
+                if (!progressOn || !progressEl) return;
+                const scoreEl =
+                    progressEl.querySelector(".quiz-progress-score");
+                if (!scoreEl) return;
+                const firstTry = scenario.querySelectorAll(
+                    '.puzzle-box[data-first-try="true"]',
+                ).length;
+                scoreEl.textContent = fmt(S.firsttry, {
+                    c: firstTry,
+                    t: totalRequired,
+                });
+            }
 
             boxes.forEach((box) => {
                 const optionsContainer = box.querySelector(".quiz-options");
@@ -351,6 +394,16 @@
                                 rawTol,
                             );
                             errorEl = inputField;
+                        }
+
+                        // Record the first-submit outcome once, for the
+                        // first-try score. Retries never change it.
+                        if (box.getAttribute("data-attempted") !== "true") {
+                            box.setAttribute("data-attempted", "true");
+                            box.setAttribute(
+                                "data-first-try",
+                                String(isCorrect),
+                            );
                         }
 
                         // Announce the result for host pages / telemetry. Fired
@@ -640,6 +693,7 @@
 
             // --- HELPER: GLOBAL CHECK ---
             function checkAllSolved() {
+                updateProgress();
                 const currentSolved =
                     scenario.querySelectorAll(".puzzle-box.solved").length;
 
@@ -648,8 +702,12 @@
                         hiddenText.style.display = "block";
                         // Gentle fade in logic is handled by CSS animation 'fadeText'
                     }
+                    showFirstTryScore();
                 }
             }
+
+            // Initialise the progress counter on load.
+            updateProgress();
         });
     });
 })();
