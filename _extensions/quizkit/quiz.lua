@@ -15,6 +15,7 @@ local STRINGS = {
     multi_partial = "{h} of {t} correct answers selected",
     kprim_true = "true", kprim_false = "false", placeholder = "Your answer…",
     progress = "{s} / {t} solved", firsttry = "{c} / {t} on the first try",
+    reset = "Start over",
   },
   de = {
     submit = "Check", correct = "Richtig!", wrong = "Leider falsch. ",
@@ -23,6 +24,7 @@ local STRINGS = {
     multi_partial = "{h} von {t} richtigen Antworten gewählt",
     kprim_true = "richtig", kprim_false = "falsch", placeholder = "Deine Antwort…",
     progress = "{s} / {t} gelöst", firsttry = "{c} / {t} im ersten Versuch richtig",
+    reset = "Neu starten",
   },
   fr = {
     submit = "Vérifier", correct = "Correct !", wrong = "Pas tout à fait. ",
@@ -31,6 +33,7 @@ local STRINGS = {
     multi_partial = "{h} sur {t} bonnes réponses sélectionnées",
     kprim_true = "vrai", kprim_false = "faux", placeholder = "Votre réponse…",
     progress = "{s} / {t} résolu(e)s", firsttry = "{c} / {t} du premier coup",
+    reset = "Recommencer",
   },
   es = {
     submit = "Comprobar", correct = "¡Correcto!", wrong = "No exactamente. ",
@@ -39,6 +42,7 @@ local STRINGS = {
     multi_partial = "{h} de {t} respuestas correctas seleccionadas",
     kprim_true = "verdadero", kprim_false = "falso", placeholder = "Tu respuesta…",
     progress = "{s} / {t} resueltas", firsttry = "{c} / {t} a la primera",
+    reset = "Empezar de nuevo",
   },
   it = {
     submit = "Verifica", correct = "Corretto!", wrong = "Non proprio. ",
@@ -47,6 +51,7 @@ local STRINGS = {
     multi_partial = "{h} su {t} risposte corrette selezionate",
     kprim_true = "vero", kprim_false = "falso", placeholder = "La tua risposta…",
     progress = "{s} / {t} risolte", firsttry = "{c} / {t} al primo tentativo",
+    reset = "Ricomincia",
   },
   nl = {
     submit = "Controleren", correct = "Correct!", wrong = "Niet helemaal. ",
@@ -55,10 +60,11 @@ local STRINGS = {
     multi_partial = "{h} van {t} juiste antwoorden geselecteerd",
     kprim_true = "waar", kprim_false = "onwaar", placeholder = "Jouw antwoord…",
     progress = "{s} / {t} opgelost", firsttry = "{c} / {t} in één keer goed",
+    reset = "Opnieuw beginnen",
   },
 }
 
-local CONFIG = { strings = STRINGS.en, lockout = 10, telemetry = nil, label = nil, progress = true }
+local CONFIG = { strings = STRINGS.en, lockout = 10, telemetry = nil, label = nil, progress = true, persist = true }
 
 -- Render inlines to an HTML string (preserves math/emphasis/code).
 -- pandoc.Plain avoids the <p> wrapper Para would add.
@@ -135,6 +141,7 @@ end
 local function inject_config()
   local parts = { string.format('"lockout":%d', math.floor(tonumber(CONFIG.lockout) or 10)) }
   parts[#parts + 1] = string.format('"progress":%s', CONFIG.progress and "true" or "false")
+  parts[#parts + 1] = string.format('"persist":%s', CONFIG.persist and "true" or "false")
   local kv = {}
   for k, v in pairs(CONFIG.strings) do
     kv[#kv + 1] = string.format('"%s":"%s"', k, json_escape(v))
@@ -310,6 +317,7 @@ function Meta(meta)
   end
   if q.label then CONFIG.label = pandoc.utils.stringify(q.label) end
   if q.progress ~= nil then CONFIG.progress = pandoc.utils.stringify(q.progress) ~= "false" end
+  if q.persist ~= nil then CONFIG.persist = pandoc.utils.stringify(q.persist) ~= "false" end
   if q.telemetry then
     CONFIG.telemetry = {
       src = q.telemetry["umami-src"] and pandoc.utils.stringify(q.telemetry["umami-src"]),
@@ -351,15 +359,16 @@ function Div(el)
   if reveal_html then
     out[#out + 1] = raw('<div class="revealed-text" style="display:none">' .. reveal_html .. '</div>')
   end
-  -- Progress bar (HTML only; the corpus path returned earlier). Populated by JS.
+  -- Progress bar + reset control (HTML only). Populated/toggled by JS.
   table.insert(out, 1, raw(
     '<div class="quiz-progress" role="status" aria-live="polite">' ..
     '<span class="quiz-progress-count"></span>' ..
     '<span class="quiz-progress-score"></span>' ..
+    '<button class="quiz-reset" type="button">' .. text_escape(cfg.strings.reset) .. '</button>' ..
     '</div>'))
   local attrs = {}
   local function put(k) if el.attributes[k] then attrs["data-" .. k] = el.attributes[k] end end
-  put("label"); put("lockout"); put("shuffle"); put("disable-on-check"); put("progress")
+  put("label"); put("lockout"); put("shuffle"); put("disable-on-check"); put("progress"); put("persist")
   return pandoc.Div(out, pandoc.Attr("", { "scenario-block" }, attrs))
 end
 

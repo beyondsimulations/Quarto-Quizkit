@@ -13,6 +13,7 @@
             multi_partial: "{h} of {t} correct answers selected",
             progress: "{s} / {t} solved",
             firsttry: "{c} / {t} on the first try",
+            reset: "Start over",
         },
         CFG.strings || {},
     );
@@ -108,8 +109,36 @@
             }
             const progressOn = resolveFlag("data-progress", CFG.progress);
             const progressEl = scenario.querySelector(".quiz-progress");
-            if (progressEl && (!progressOn || totalRequired === 0)) {
-                progressEl.style.display = "none";
+            const persistOn = resolveFlag("data-persist", CFG.persist);
+            const quizIndex = [
+                ...document.querySelectorAll(".scenario-block"),
+            ].indexOf(scenario);
+            // Per-box keys are keyed by a CONTENT HASH, not position, so the
+            // key survives question-order shuffle and a question edit
+            // automatically orphans its old key (no false "solved").
+            const keyPrefix =
+                "quizkit:" + location.pathname + ":" + quizIndex + ":";
+
+            function quizHash(str) {
+                let h = 5381;
+                for (let i = 0; i < str.length; i++)
+                    h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+                return (h >>> 0).toString(36);
+            }
+            // Show the bar if progress OR persistence needs it; hide the
+            // count/score when progress is off, and the reset button when
+            // persistence is off.
+            const showBar = (progressOn && totalRequired > 0) || persistOn;
+            if (progressEl) {
+                progressEl.style.display = showBar ? "" : "none";
+                if (!progressOn) {
+                    const c = progressEl.querySelector(".quiz-progress-count");
+                    const s = progressEl.querySelector(".quiz-progress-score");
+                    if (c) c.style.display = "none";
+                    if (s) s.style.display = "none";
+                }
+                const rb = progressEl.querySelector(".quiz-reset");
+                if (rb && !persistOn) rb.style.display = "none";
             }
 
             function updateProgress() {
@@ -141,6 +170,11 @@
 
             boxes.forEach((box) => {
                 const optionsContainer = box.querySelector(".quiz-options");
+
+                // Stable content hash captured before any DOM mutation.
+                const boxHash = quizHash(
+                    (box.textContent || "").replace(/\s+/g, " ").trim(),
+                );
 
                 // Optional per-scenario option shuffle: Fisher–Yates over the
                 // option buttons so their DOM order is randomized on load.
@@ -405,6 +439,7 @@
                                 String(isCorrect),
                             );
                         }
+                        persistBox();
 
                         // Announce the result for host pages / telemetry. Fired
                         // on every check, regardless of correctness.
@@ -480,6 +515,7 @@
 
                             // Check if ALL boxes in this scenario are done
                             checkAllSolved();
+                            persistBox();
                         } else {
                             // === FAILURE ===
 
@@ -689,6 +725,61 @@
                     }
                     selectedBtn = null;
                 }
+
+                // --- HELPER: PERSISTENCE ---
+                function persistBox() {
+                    if (!persistOn) return;
+                    try {
+                        localStorage.setItem(
+                            keyPrefix + boxHash,
+                            JSON.stringify({
+                                a: box.getAttribute("data-attempted") === "true",
+                                f: box.getAttribute("data-first-try") === "true",
+                                s: box.classList.contains("solved"),
+                            }),
+                        );
+                    } catch (e) {}
+                }
+
+                // Render a box in the solved state on restore. We don't know
+                // which option was picked — only that it's done — so we mark
+                // solved, freeze controls, and reveal outcome notes.
+                function markSolvedFromRestore() {
+                    box.classList.add("solved");
+                    submitBtn.style.display = "none";
+                    if (options) options.forEach((o) => (o.disabled = true));
+                    if (inputField) inputField.disabled = true;
+                    if (kprimTable)
+                        kprimRows.forEach((row) =>
+                            row
+                                .querySelectorAll("button")
+                                .forEach((b) => (b.disabled = true)),
+                        );
+                    feedback.classList.add("success");
+                    feedback.innerText = S.correct;
+                    revealFeedback(true);
+                }
+
+                function restoreBox() {
+                    if (!persistOn) return;
+                    let stored;
+                    try {
+                        const rawv = localStorage.getItem(keyPrefix + boxHash);
+                        if (!rawv) return;
+                        stored = JSON.parse(rawv);
+                    } catch (e) {
+                        return;
+                    }
+                    if (!stored) return;
+                    if (stored.a) {
+                        box.setAttribute("data-attempted", "true");
+                        box.setAttribute("data-first-try", String(!!stored.f));
+                    }
+                    if (stored.s) markSolvedFromRestore();
+                }
+
+                // Restore any saved state for this box on load.
+                restoreBox();
             });
 
             // --- HELPER: GLOBAL CHECK ---
@@ -706,8 +797,26 @@
                 }
             }
 
-            // Initialise the progress counter on load.
-            updateProgress();
+            // Reflect any restored solves in the counter, reveal, and score.
+            checkAllSolved();
+
+            // "Start over": clear every stored key for this quiz (matched by
+            // prefix, so it works regardless of hashing/shuffle) and reload.
+            const resetBtn = scenario.querySelector(".quiz-reset");
+            if (resetBtn) {
+                resetBtn.addEventListener("click", function () {
+                    if (persistOn) {
+                        try {
+                            for (let i = localStorage.length - 1; i >= 0; i--) {
+                                const k = localStorage.key(i);
+                                if (k && k.indexOf(keyPrefix) === 0)
+                                    localStorage.removeItem(k);
+                            }
+                        } catch (e) {}
+                    }
+                    location.reload();
+                });
+            }
         });
     });
 })();
