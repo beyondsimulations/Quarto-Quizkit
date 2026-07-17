@@ -39,7 +39,7 @@ A prime has exactly two divisors: 1 and itself.
 :::
 :::
 
-::: {.question answer="7" tolerance="0"}
+::: {.question answer="7" tolerance="0" submit="Confirm answer"}
 How many integers x satisfy |x - 10| ≤ 3? Type the number.
 :::
 

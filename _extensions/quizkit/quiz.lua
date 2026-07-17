@@ -251,6 +251,7 @@ local function compile_question(qdiv, cfg)
   local is_kprim = qdiv.classes:includes("kprim")
   local answer = qdiv.attributes["answer"]
   local tolerance = qdiv.attributes["tolerance"]
+  local submit_label = qdiv.attributes["submit"] or cfg.strings.submit
   local stem, list = {}, nil
   local feedbacks = {}  -- { {when=..., content=...}, … } in author order
   for _, blk in ipairs(qdiv.content) do
@@ -268,13 +269,13 @@ local function compile_question(qdiv, cfg)
   local inner = {}
   for _, b in ipairs(stem) do inner[#inner + 1] = b end
   if is_kprim and list then
-    inner[#inner + 1] = build_kprim(list, cfg.strings.submit,
+    inner[#inner + 1] = build_kprim(list, submit_label,
       cfg.strings.kprim_true, cfg.strings.kprim_false)
   elseif answer ~= nil then
-    inner[#inner + 1] = build_input(answer, tolerance, cfg.strings.submit,
+    inner[#inner + 1] = build_input(answer, tolerance, submit_label,
       cfg.strings.placeholder)
   elseif list then
-    inner[#inner + 1] = build_choice(list, cfg.strings.submit)
+    inner[#inner + 1] = build_choice(list, submit_label)
   end
   -- Feedback notes: shown after answering. data-when is "always" (any outcome),
   -- "correct", or "wrong" (from a .correct/.wrong class on the .feedback div).
