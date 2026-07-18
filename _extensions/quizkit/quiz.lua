@@ -174,7 +174,7 @@ local function ensure_deps()
   deps_added = true
   quarto.doc.add_html_dependency({
     name = "quizkit",
-    version = "1.0.0",
+    version = "1.0.1",
     scripts = { "quiz.js" },
     stylesheets = { "quiz.css" },
   })

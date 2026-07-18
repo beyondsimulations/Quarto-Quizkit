@@ -1,23 +1,25 @@
 (function () {
     // --- CONFIG SHIM ---
-    // The Lua filter injects window.quizkitConfig into the head. Fall back to
-    // English defaults so the engine still runs if the config is missing.
-    const CFG = window.quizkitConfig || {};
-    const S = Object.assign(
-        {
-            submit: "Check",
-            correct: "Correct!",
-            wrong: "Not quite. ",
-            cooldown: "Try again in {n}s …",
-            kprim_partial: "{c}/{t} statements rated correctly",
-            multi_partial: "{h} of {t} correct answers selected",
-            progress: "{s} / {t} solved",
-            firsttry: "{c} / {t} on the first try",
-            reset: "Start over",
-        },
-        CFG.strings || {},
-    );
-    const DEFAULT_LOCKOUT = Number.isFinite(CFG.lockout) ? CFG.lockout : 10;
+    // The Lua filter injects window.quizkitConfig into the head via
+    // include_text("in-header", …), which Quarto places AFTER this dependency
+    // script — so the config does not exist yet while this file evaluates.
+    // Resolve it lazily on DOMContentLoaded (below), when the inline config
+    // script has certainly run; fall back to English defaults so the engine
+    // still works if the config is missing entirely.
+    const DEFAULT_STRINGS = {
+        submit: "Check",
+        correct: "Correct!",
+        wrong: "Not quite. ",
+        cooldown: "Try again in {n}s …",
+        kprim_partial: "{c}/{t} statements rated correctly",
+        multi_partial: "{h} of {t} correct answers selected",
+        progress: "{s} / {t} solved",
+        firsttry: "{c} / {t} on the first try",
+        reset: "Start over",
+    };
+    let CFG = {};
+    let S = DEFAULT_STRINGS;
+    let DEFAULT_LOCKOUT = 10;
     const fmt = (str, map) => str.replace(/\{(\w+)\}/g, (_, k) => map[k]);
 
     // Per-scenario lockout: data-lockout overrides the global default; a
@@ -29,6 +31,10 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        CFG = window.quizkitConfig || {};
+        S = Object.assign({}, DEFAULT_STRINGS, CFG.strings || {});
+        DEFAULT_LOCKOUT = Number.isFinite(CFG.lockout) ? CFG.lockout : 10;
+
         const scenarios = document.querySelectorAll(".scenario-block");
 
         // --- HELPER: NUMERIC PARSE (thousands / decimal separators) ---
