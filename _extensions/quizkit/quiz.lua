@@ -66,11 +66,27 @@ local STRINGS = {
 
 local CONFIG = { strings = STRINGS.en, lockout = 10, telemetry = nil, label = nil, progress = true, persist = true, shuffle = false, shuffle_questions = false }
 
+-- Serialize a Pandoc AST fragment to HTML using the document's math method
+-- (in particular html-math-method) so embedded math emits \(...\)/\[...\] as
+-- Quarto's MathJax expects, instead of the bare $...$ delimiters the default
+-- writer options fall back to. Only html_math_method is forwarded, not the
+-- full PANDOC_WRITER_OPTIONS: that object also carries the document's
+-- template/standalone settings, and passing it whole makes pandoc.write
+-- wrap each fragment in a complete standalone HTML document. PANDOC_WRITER_
+-- OPTIONS is nil on older pandoc versions; fall back to the previous
+-- behavior there.
+local function write_html(doc)
+  if PANDOC_WRITER_OPTIONS then
+    return pandoc.write(doc, "html", { html_math_method = PANDOC_WRITER_OPTIONS.html_math_method })
+  end
+  return pandoc.write(doc, "html")
+end
+
 -- Render inlines to an HTML string (preserves math/emphasis/code).
 -- pandoc.Plain avoids the <p> wrapper Para would add.
 local function inlines_to_html(inlines)
   local doc = pandoc.Pandoc({ pandoc.Plain(inlines) })
-  return pandoc.write(doc, "html"):gsub("%s+$", "")
+  return write_html(doc):gsub("%s+$", "")
 end
 
 -- Pandoc encodes task-list markers as the first Str of the item's first block:
@@ -174,7 +190,7 @@ local function ensure_deps()
   deps_added = true
   quarto.doc.add_html_dependency({
     name = "quizkit",
-    version = "1.0.1",
+    version = "1.0.2",
     scripts = { "quiz.js" },
     stylesheets = { "quiz.css" },
   })
@@ -209,7 +225,7 @@ local function build_choice(list, submit_label)
     local exp = extract_explanation(rest)
     local note_html = nil
     if extra and #extra > 0 then
-      note_html = pandoc.write(pandoc.Pandoc(extra), "html")
+      note_html = write_html(pandoc.Pandoc(extra))
     elseif exp then
       note_html = "<p>" .. text_escape(exp) .. "</p>"
     end
@@ -257,7 +273,7 @@ local function build_kprim(list, submit_label, t_true, t_false)
     local note = ""
     if extra and #extra > 0 then
       note = string.format('<div class="kprim-note" style="display:none">%s</div>',
-        pandoc.write(pandoc.Pandoc(extra), "html"))
+        write_html(pandoc.Pandoc(extra)))
     end
     rows[#rows + 1] = string.format(
       '<div class="kprim-row" data-kprim="%s">' ..
@@ -309,7 +325,7 @@ local function compile_question(qdiv, cfg)
   for _, fb in ipairs(feedbacks) do
     inner[#inner + 1] = raw(string.format(
       '<div class="quiz-feedback-note" data-when="%s" style="display:none">%s</div>',
-      fb.when, pandoc.write(pandoc.Pandoc(fb.content), "html")))
+      fb.when, write_html(pandoc.Pandoc(fb.content))))
   end
   return pandoc.Div(inner, pandoc.Attr("", { "puzzle-box" }))
 end
@@ -374,7 +390,7 @@ function Div(el)
     if blk.t == "Div" and blk.classes:includes("question") then
       out[#out + 1] = compile_question(blk, cfg)
     elseif blk.t == "Div" and blk.classes:includes("reveal") then
-      reveal_html = pandoc.write(pandoc.Pandoc(blk.content), "html")
+      reveal_html = write_html(pandoc.Pandoc(blk.content))
     else
       out[#out + 1] = blk
     end

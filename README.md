@@ -209,6 +209,8 @@ Every quiz shows a live **solved counter** and, on completion, a **first-try sco
 
 Persistence is keyed by a content hash of each question, so editing a question automatically invalidates its saved state — a changed question never shows as falsely "solved". It is entirely client-side and anonymous: no server, no login, no per-student identity. If `localStorage` is unavailable (private mode), the quiz still works, just without memory.
 
+Since 1.0.2, math inside options/notes/kprim/feedback renders through the document's math method rather than as literal text (see [Changelog](#changelog)), which changes the rendered content of any question containing math. That changes its content hash, so previously saved progress for those questions is treated as stale and reset once; non-math questions are unaffected.
+
 Opt out per-quiz (attribute on `.quiz`) or project-wide (`quiz:` block):
 
 | | Progress bar / score | Saved progress |
@@ -274,6 +276,13 @@ If your project also renders a Markdown format (e.g. `hugo-md` for a search inde
 
 - Quarto ≥ 1.4
 - A Quarto HTML format (any theme). No JavaScript dependencies, no build step.
+
+## Changelog
+
+**1.0.2**
+
+- Fixed: math inside quiz options, per-option notes, K-prim statements, and feedback now renders with the document's math method (`\(...\)`/`\[...\]`) instead of literal `$...$` text, so it typesets correctly under Quarto's default MathJax setup. Previously, MathJax's delimiter-based typesetting silently skipped this math because the filter serialized those fragments with default writer options instead of the document's.
+- Because this changes the rendered content of any question containing math, previously saved progress for those questions is invalidated once (see [Progress & persistence](#progress--persistence)); plain-text questions are unaffected.
 
 ## License
 
