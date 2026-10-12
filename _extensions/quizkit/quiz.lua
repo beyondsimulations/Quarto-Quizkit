@@ -5,6 +5,18 @@
 -- window.quizkitConfig into the HTML head. In non-HTML output it strips every
 -- answer and emits question stems only.
 
+-- Quarto's `llms-txt` pass is the exception: it converts the finished HTML page
+-- to Markdown, so the non-HTML branch never runs for it and the widget's hidden
+-- explanation, feedback and reveal blocks would land in the `.llms.md` file.
+-- Quarto leaves an element with the class `llms-hidden-content` out of that
+-- conversion and then removes the element itself from the page, keeping its
+-- children. So the class goes on a wrapper, never on the block: a block that
+-- carried it would lose its own class and `hidden`, and show the answers.
+-- `display:contents` keeps the wrapper out of the layout where it stays.
+local function llms_hidden(html)
+  return '<div class="llms-hidden-content" style="display:contents">' .. html .. '</div>'
+end
+
 -- Bundled UI strings. `en` is the default; `de` ships for the German lectures.
 -- A consumer overrides individual keys via `quiz.strings` in _quarto.yml.
 local STRINGS = {
@@ -244,8 +256,8 @@ local function build_choice(list, submit_label)
   -- Per-option notes only for single-choice; on multi they'd leak which options
   -- are correct, so omit them there.
   if correct < 2 and #notes > 0 then
-    html = html .. string.format('\n<div class="quiz-option-notes" hidden>\n%s\n</div>',
-      table.concat(notes, "\n"))
+    html = html .. "\n" .. llms_hidden(string.format('<div class="quiz-option-notes" hidden>\n%s\n</div>',
+      table.concat(notes, "\n")))
   end
   html = html .. string.format(
     '\n<div class="quiz-actions"><p class="quiz-feedback"></p>' ..
@@ -272,8 +284,8 @@ local function build_kprim(list, submit_label, t_true, t_false)
     -- so strip_blocks drops it from the corpus by construction.
     local note = ""
     if extra and #extra > 0 then
-      note = string.format('<div class="kprim-note" style="display:none">%s</div>',
-        write_html(pandoc.Pandoc(extra)))
+      note = llms_hidden(string.format('<div class="kprim-note" style="display:none">%s</div>',
+        write_html(pandoc.Pandoc(extra))))
     end
     rows[#rows + 1] = string.format(
       '<div class="kprim-row" data-kprim="%s">' ..
@@ -323,9 +335,9 @@ local function compile_question(qdiv, cfg)
   -- Feedback notes: shown after answering. data-when is "always" (any outcome),
   -- "correct", or "wrong" (from a .correct/.wrong class on the .feedback div).
   for _, fb in ipairs(feedbacks) do
-    inner[#inner + 1] = raw(string.format(
+    inner[#inner + 1] = raw(llms_hidden(string.format(
       '<div class="quiz-feedback-note" data-when="%s" style="display:none">%s</div>',
-      fb.when, write_html(pandoc.Pandoc(fb.content))))
+      fb.when, write_html(pandoc.Pandoc(fb.content)))))
   end
   return pandoc.Div(inner, pandoc.Attr("", { "puzzle-box" }))
 end
@@ -396,7 +408,7 @@ function Div(el)
     end
   end
   if reveal_html then
-    out[#out + 1] = raw('<div class="revealed-text" style="display:none">' .. reveal_html .. '</div>')
+    out[#out + 1] = raw(llms_hidden('<div class="revealed-text" style="display:none">' .. reveal_html .. '</div>'))
   end
   -- Progress bar + reset control (HTML only). Populated/toggled by JS.
   table.insert(out, 1, raw(

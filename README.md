@@ -272,12 +272,18 @@ document.addEventListener("quiz:answer", (e) => {
 
 If your project also renders a Markdown format (e.g. `hugo-md` for a search index or an LLM corpus), Quizkit's filter is format-aware: HTML output gets the full widget, while any non-HTML output gets **only the question stems** — every option, answer, `[x]`, feedback, and reveal is stripped. Answer keys never reach your `.md` files. Note that non-HTML output keeps only the question stems: any loose prose between questions is omitted there (unlike HTML output, where it is passed through).
 
+Quarto's `llms-txt` option (`website: llms-txt: true`) works differently: it converts the finished HTML page to Markdown, so the widget is already built when it runs. Quizkit therefore marks its explanation, feedback and reveal blocks with the class `llms-hidden-content`, which Quarto leaves out of the `.llms.md` files. Those files keep the question stems and the option texts, with nothing that says which option is right.
+
 ## Requirements
 
 - Quarto ≥ 1.4
 - A Quarto HTML format (any theme). No JavaScript dependencies, no build step.
 
 ## Changelog
+
+**1.0.3**
+
+- Added: explanation, feedback and reveal blocks carry the class `llms-hidden-content`, so Quarto's `llms-txt` output no longer contains them (see [Answer safety for plaintext exports](#answer-safety-for-plaintext-exports)). The page itself and saved progress are unchanged.
 
 **1.0.2**
 
