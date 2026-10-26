@@ -590,7 +590,7 @@
                                     );
                                 submitBtn.disabled = true;
                                 feedback.style.color =
-                                    "var(--bs-danger, #db6b6b)";
+                                    "var(--qk-bad)";
                                 feedback.innerText = S.wrong;
                                 box.setAttribute("data-frozen", "true");
                                 persistBox();
@@ -672,8 +672,8 @@
                     // were right, styled as a "partial" warning rather than
                     // the plain red wrong text of the binary question types.
                     feedback.style.color = customMessage
-                        ? "var(--bs-warning, #E65100)"
-                        : "var(--bs-danger, #db6b6b)";
+                        ? "var(--qk-warn)"
+                        : "var(--qk-bad)";
                     const prefix = customMessage
                         ? `${customMessage}. `
                         : S.wrong;
@@ -821,7 +821,7 @@
                     if (inputField) inputField.classList.add("wrong");
                     if (kprimTable) kprimTable.classList.add("wrong");
                     submitBtn.disabled = true;
-                    feedback.style.color = "var(--bs-danger, #db6b6b)";
+                    feedback.style.color = "var(--qk-bad)";
                     feedback.innerText = S.wrong;
                     revealFeedback(false);
                 }

@@ -281,6 +281,11 @@ Quarto's `llms-txt` option (`website: llms-txt: true`) works differently: it con
 
 ## Changelog
 
+**1.1.0**
+
+- Added: dark mode. Quiz colours come from `--qk-*` tokens (text, bg, border, accent, muted, good, bad, warn) that follow the page: text, background, border and accent track Bootstrap's mode-aware variables, and good/bad/warn switch to dark variants under Quarto's `body.quarto-dark`. Answer-state backgrounds mix the state colour into the page background, and muted text is derived from text and background (no longer `--bs-secondary-color`, which brands use as an accent). Light mode looks as before, except that the red and orange text colours are darker to reach 4.5:1 on the page.
+- Courses can override any token with `body { --qk-good: ...; }`.
+
 **1.0.3**
 
 - Added: explanation, feedback and reveal blocks carry the class `llms-hidden-content`, so Quarto's `llms-txt` output no longer contains them (see [Answer safety for plaintext exports](#answer-safety-for-plaintext-exports)). The page itself and saved progress are unchanged.

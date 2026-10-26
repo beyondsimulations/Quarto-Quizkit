@@ -9,7 +9,10 @@ website:
   title: "Quizkit example"
 format:
   html:
-    theme: cosmo
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
   hugo-md: default
 filters:
   - quizkit
