@@ -3,7 +3,7 @@
 # right, and checks text colour vs. its effective background for the option,
 # per-option explanation, feedback and feedback note.
 # Run: uv run --with playwright==1.58.0 python tests/dark-mode.test.py
-import functools, http.server, pathlib, subprocess, sys, threading
+import functools, os, http.server, pathlib, subprocess, sys, threading
 from playwright.sync_api import sync_playwright
 
 root = pathlib.Path(__file__).resolve().parent.parent
@@ -44,6 +44,7 @@ JS = """(sel) => {
 SELS = [".quiz-option", ".quiz-option-explanation", ".quiz-option-note", ".quiz-feedback", ".quiz-feedback-note", ".quiz-progress", ".quiz-submit"]
 
 fails = []
+shots = os.environ.get("QUIZKIT_SHOTS")
 with sync_playwright() as p:
     b = p.chromium.launch()
     for mode in ("light", "dark"):
@@ -66,7 +67,9 @@ with sync_playwright() as p:
         box.locator(".quiz-submit").first.click()
         page.wait_for_timeout(500)
         grab("right")
-        page.screenshot(path=f"/private/tmp/claude-501/quizkit-{mode}.png", clip=page.locator(".scenario-block").first.bounding_box())
+        if shots:  # screenshots only on request: QUIZKIT_SHOTS=<dir>
+            pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=f"{shots}/quizkit-{mode}.png", clip=page.locator(".scenario-block").first.bounding_box())
         for r in res:
             # disabled controls are exempt from WCAG contrast
             # answer-state fills must blend into the page (a light pastel on a dark page is out)
