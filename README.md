@@ -283,8 +283,8 @@ Quarto's `llms-txt` option (`website: llms-txt: true`) works differently: it con
 
 **1.1.0**
 
-- Added: dark mode. Quiz colours come from `--qk-*` tokens (text, bg, border, accent, muted, good, bad, warn) that follow the page: text, background, border and accent track Bootstrap's mode-aware variables, and good/bad/warn switch to dark variants under Quarto's `body.quarto-dark`. Answer-state backgrounds mix the state colour into the page background, and muted text is derived from text and background (no longer `--bs-secondary-color`, which brands use as an accent). Light mode looks as before, except that the red and orange text colours are darker to reach 4.5:1 on the page.
-- Courses can override any token with `body { --qk-good: ...; }`.
+- Added: dark mode. Quiz colours come from `--qk-*` tokens (text, bg, border, accent, muted, good, bad, warn) that follow the page: text, background, border and accent track Bootstrap's mode-aware variables, and good/bad/warn switch to dark variants under Quarto's `body.quarto-dark`. Answer-state backgrounds mix the state colour into the page background, and muted text is derived from text and background (no longer `--bs-secondary-color`, which brands use as an accent). Light mode changes in two places besides the red and orange text colours, which are darker to reach 4.5:1 on the page: the submit button's fill leans 15 % toward the text colour (its label clears 4.5:1 on mid-tone accents such as `#537E8F`), and a correct option's text takes the page's text colour instead of Bootstrap's dark success green.
+- Courses can override any token with `body { --qk-good: ...; }`. Such an override (on `body` or on a `.quiz…` element) pins the token in light and dark mode alike; scope a fixed colour to one mode with `body.quarto-light` or `body.quarto-dark`.
 
 **1.0.3**
 
