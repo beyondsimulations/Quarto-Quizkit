@@ -242,8 +242,11 @@
 }
 
 /* --- ACTION AREA --- */
+/* The fill leans 15 % towards the text colour: darker on a light page, lighter
+   on a dark one, so the label clears 4.5:1 on mid-tone brand accents too
+   (#537E8F: 4.36:1 plain, 5.0:1 mixed). */
 .quiz-submit {
-    background-color: var(--qk-accent);
+    background-color: color-mix(in srgb, var(--qk-accent) 85%, var(--qk-text));
     color: var(--qk-bg);
     border: none;
     padding: 8px 16px; /* Compact button */
